@@ -1,9 +1,19 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, ClipboardList, UserCircle } from "lucide-react";
+import { Home, ClipboardList, UserCircle, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 const Header = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success("Signed out successfully");
+    navigate("/auth");
+  };
   
   return (
     <header className="bg-card shadow-sm border-b-2 border-border">
@@ -49,6 +59,17 @@ const Header = () => {
                 <span className="hidden sm:inline">Admin</span>
               </Link>
             </Button>
+            
+            {user && (
+              <Button
+                variant="ghost"
+                size="default"
+                onClick={handleSignOut}
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Sign Out</span>
+              </Button>
+            )}
           </nav>
         </div>
       </div>

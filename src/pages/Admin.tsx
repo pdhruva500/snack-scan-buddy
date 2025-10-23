@@ -1,40 +1,80 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { getSnackLogs, clearSnackLogs, downloadCSV, type SnackLog } from "@/lib/storage";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Download, Trash2, RefreshCw, Scan } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { Download, RefreshCw, Lock, Loader2 } from "lucide-react";
+import CryptoJS from "crypto-js";
+
+interface SnackLog {
+  id: string;
+  student_name: string;
+  snack_name: string;
+  timestamp: string;
+}
 
 const Admin = () => {
+  const navigate = useNavigate();
   const [logs, setLogs] = useState<SnackLog[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [pin, setPin] = useState("");
+  const [verifying, setVerifying] = useState(false);
 
-  const loadLogs = () => {
-    const snackLogs = getSnackLogs();
-    setLogs(snackLogs);
+  const loadLogs = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("snack_logs")
+        .select("id, student_name, snack_name, timestamp")
+        .order("timestamp", { ascending: false });
+
+      if (error) throw error;
+      setLogs(data || []);
+    } catch (error) {
+      console.error("Error loading logs:", error);
+      toast.error("Failed to load logs");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => {
-    loadLogs();
-  }, []);
+  const verifyPin = async () => {
+    if (!pin) {
+      toast.error("Please enter a PIN");
+      return;
+    }
 
-  const handleClearLogs = () => {
-    clearSnackLogs();
-    setLogs([]);
-    toast.success("All logs cleared successfully");
+    setVerifying(true);
+    try {
+      const pinHash = CryptoJS.SHA256(pin).toString();
+      const { data, error } = await supabase
+        .from("admin_pins")
+        .select("pin_hash")
+        .eq("pin_hash", pinHash)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        setAuthenticated(true);
+        toast.success("Access granted");
+        loadLogs();
+      } else {
+        toast.error("Invalid PIN");
+        setPin("");
+      }
+    } catch (error) {
+      console.error("Error verifying PIN:", error);
+      toast.error("Failed to verify PIN");
+    } finally {
+      setVerifying(false);
+    }
   };
 
   const handleDownloadCSV = () => {
@@ -42,8 +82,29 @@ const Admin = () => {
       toast.error("No logs to export");
       return;
     }
-    
-    downloadCSV();
+
+    const headers = ["Student Name", "Snack", "Time"];
+    const rows = logs.map((log) => [
+      log.student_name,
+      log.snack_name,
+      new Date(log.timestamp).toLocaleString(),
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `eastside-eats-logs-${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
     toast.success("Logs exported successfully");
   };
 
@@ -58,10 +119,65 @@ const Admin = () => {
     });
   };
 
+  if (!authenticated) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-lg border-2">
+          <CardHeader className="text-center space-y-2">
+            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+              <Lock className="w-8 h-8 text-primary" />
+            </div>
+            <CardTitle className="text-3xl font-bold">Admin Access</CardTitle>
+            <CardDescription>Enter PIN to view snack logs</CardDescription>
+          </CardHeader>
+
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="pin">PIN Code</Label>
+              <Input
+                id="pin"
+                type="password"
+                placeholder="Enter 4-digit PIN"
+                value={pin}
+                onChange={(e) => setPin(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && verifyPin()}
+                maxLength={4}
+                className="h-14 text-lg text-center border-2"
+              />
+              <p className="text-xs text-muted-foreground text-center">
+                Default PIN: 1234
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="xl"
+                onClick={() => navigate("/")}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="success"
+                size="xl"
+                onClick={verifyPin}
+                disabled={verifying}
+                className="flex-1"
+              >
+                {verifying ? <Loader2 className="w-4 h-4 animate-spin" /> : "Verify"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="container mx-auto px-4 py-8">
         <Card className="shadow-lg border-2">
           <CardHeader>
@@ -69,20 +185,16 @@ const Admin = () => {
               <div>
                 <CardTitle className="text-3xl font-bold">Admin Dashboard</CardTitle>
                 <CardDescription className="text-base mt-1">
-                  View and manage snack sign-out logs
+                  Snack sign-out logs for cashier review
                 </CardDescription>
               </div>
-              
+
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="default"
-                  onClick={loadLogs}
-                >
-                  <RefreshCw className="w-4 h-4" />
+                <Button variant="outline" size="default" onClick={loadLogs} disabled={loading}>
+                  <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
                   Refresh
                 </Button>
-                
+
                 <Button
                   variant="default"
                   size="default"
@@ -92,43 +204,28 @@ const Admin = () => {
                   <Download className="w-4 h-4" />
                   Export CSV
                 </Button>
-                
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="destructive"
-                      size="default"
-                      disabled={logs.length === 0}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Clear All
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will permanently delete all {logs.length} snack logs. This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleClearLogs} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                        Delete All Logs
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+
+                <Button
+                  variant="outline"
+                  size="default"
+                  onClick={() => {
+                    setAuthenticated(false);
+                    setPin("");
+                    navigate("/");
+                  }}
+                >
+                  Sign Out
+                </Button>
               </div>
             </div>
           </CardHeader>
-          
+
           <CardContent>
             {logs.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground text-lg">No snack logs yet</p>
                 <p className="text-muted-foreground text-sm mt-2">
-                  Logs will appear here when students sign out snacks
+                  Logs will appear here when students scan snacks
                 </p>
               </div>
             ) : (
@@ -139,26 +236,15 @@ const Admin = () => {
                       <TableHead className="font-bold">Student Name</TableHead>
                       <TableHead className="font-bold">Snack</TableHead>
                       <TableHead className="font-bold">Time</TableHead>
-                      <TableHead className="font-bold text-center">Type</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {logs.map((log) => (
                       <TableRow key={log.id} className="hover:bg-muted/30">
-                        <TableCell className="font-medium">{log.studentName}</TableCell>
-                        <TableCell>{log.snackName}</TableCell>
+                        <TableCell className="font-medium">{log.student_name}</TableCell>
+                        <TableCell>{log.snack_name}</TableCell>
                         <TableCell className="text-muted-foreground">
                           {formatDate(log.timestamp)}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {log.scanType === 'barcode' ? (
-                            <Badge variant="outline" className="gap-1">
-                              <Scan className="w-3 h-3" />
-                              Scanned
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary">Manual</Badge>
-                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -166,7 +252,7 @@ const Admin = () => {
                 </Table>
               </div>
             )}
-            
+
             {logs.length > 0 && (
               <div className="mt-4 text-center text-sm text-muted-foreground">
                 Total logs: {logs.length}

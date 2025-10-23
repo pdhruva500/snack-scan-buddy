@@ -1,88 +1,120 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { addSnackLog } from "@/lib/storage";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Scan, CheckCircle } from "lucide-react";
-
-const SNACK_OPTIONS = [
-  "Fairlife Milk",
-  "Granola Mini Packet",
-  "Chips",
-  "Cookies",
-  "Apple",
-  "Banana",
-  "Protein Bar",
-  "Trail Mix",
-  "String Cheese",
-  "Yogurt",
-];
+import { Scan, CheckCircle, Loader2, AlertCircle } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { isLunchTime, getLunchTimeMessage } from "@/lib/timeRestrictions";
 
 const SignOut = () => {
   const navigate = useNavigate();
-  const [studentName, setStudentName] = useState("");
-  const [selectedSnack, setSelectedSnack] = useState("");
+  const { user, loading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
+  const [scannedBarcode, setScannedBarcode] = useState("");
+  const [detectedSnack, setDetectedSnack] = useState<{ id: string; name: string } | null>(null);
+  const [lunchRestricted, setLunchRestricted] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent, scanType: 'manual' | 'barcode' = 'manual') => {
-    e.preventDefault();
-    
-    if (!studentName.trim()) {
-      toast.error("Please enter your name");
-      return;
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/auth");
     }
-    
-    if (!selectedSnack) {
-      toast.error("Please select a snack");
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
+  }, [user, loading, navigate]);
+
+  useEffect(() => {
+    setLunchRestricted(isLunchTime());
+    const interval = setInterval(() => {
+      setLunchRestricted(isLunchTime());
+    }, 60000); // Check every minute
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleBarcodeInput = async (barcode: string) => {
     try {
-      addSnackLog({
-        studentName: studentName.trim(),
-        snackName: selectedSnack,
-        scanType,
+      const { data: snack, error } = await supabase
+        .from("snacks")
+        .select("id, name")
+        .eq("barcode", barcode)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (snack) {
+        setDetectedSnack(snack);
+        setScannedBarcode(barcode);
+        toast.success("Snack detected!", {
+          description: snack.name,
+        });
+      } else {
+        toast.error("Barcode not recognized. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error looking up barcode:", error);
+      toast.error("Failed to process barcode");
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!user || !detectedSnack) return;
+
+    setIsSubmitting(true);
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .single();
+
+      const { error } = await supabase.from("snack_logs").insert({
+        user_id: user.id,
+        snack_id: detectedSnack.id,
+        snack_name: detectedSnack.name,
+        student_name: profile?.full_name || user.email || "Unknown",
       });
-      
-      toast.success("Snack signed out successfully!", {
-        description: `${studentName} took ${selectedSnack}`,
+
+      if (error) throw error;
+
+      toast.success("Snack logged successfully!", {
+        description: `${detectedSnack.name} signed out`,
         icon: <CheckCircle className="w-4 h-4" />,
       });
-      
-      // Reset form
-      setStudentName("");
-      setSelectedSnack("");
-      setShowBarcodeScanner(false);
-      
-      // Navigate back to home after a short delay
+
+      setDetectedSnack(null);
+      setScannedBarcode("");
+      setShowScanner(false);
+
       setTimeout(() => {
         navigate("/");
       }, 1500);
     } catch (error) {
-      toast.error("Failed to sign out snack. Please try again.");
-      console.error('Error signing out snack:', error);
+      console.error("Error logging snack:", error);
+      toast.error("Failed to log snack. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleBarcodeSimulation = () => {
-    // Simulate barcode scan by selecting a random snack
-    const randomSnack = SNACK_OPTIONS[Math.floor(Math.random() * SNACK_OPTIONS.length)];
-    setSelectedSnack(randomSnack);
-    setShowBarcodeScanner(false);
-    toast.success("Barcode scanned!", {
-      description: `Detected: ${randomSnack}`,
-    });
+  const simulateBarcodeScanning = () => {
+    // Simulate scanning by randomly selecting a barcode from sample data
+    const barcodes = ["123456789", "234567890", "345678901", "456789012", "567890123"];
+    const randomBarcode = barcodes[Math.floor(Math.random() * barcodes.length)];
+    handleBarcodeInput(randomBarcode);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -91,101 +123,120 @@ const SignOut = () => {
       <main className="container mx-auto px-4 py-8 max-w-2xl">
         <Card className="shadow-lg border-2">
           <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-3xl font-bold">Sign Out a Snack</CardTitle>
+            <CardTitle className="text-3xl font-bold">Scan Your Snack</CardTitle>
             <CardDescription className="text-base">
-              Enter your name and select your snack
+              Use the barcode scanner to log your snack
             </CardDescription>
           </CardHeader>
-          
-          <CardContent>
-            <form onSubmit={(e) => handleSubmit(e, 'manual')} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="studentName" className="text-lg">
-                  Your Name
-                </Label>
-                <Input
-                  id="studentName"
-                  type="text"
-                  placeholder="Enter your full name"
-                  value={studentName}
-                  onChange={(e) => setStudentName(e.target.value)}
-                  className="h-14 text-lg border-2"
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="snack" className="text-lg">
-                  Select Your Snack
-                </Label>
-                
-                <div className="flex gap-2">
-                  <Select value={selectedSnack} onValueChange={setSelectedSnack} required>
-                    <SelectTrigger className="h-14 text-lg border-2 flex-1">
-                      <SelectValue placeholder="Choose a snack..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SNACK_OPTIONS.map((snack) => (
-                        <SelectItem key={snack} value={snack} className="text-lg py-3">
-                          {snack}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  
+
+          <CardContent className="space-y-6">
+            {lunchRestricted && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{getLunchTimeMessage()}</AlertDescription>
+              </Alert>
+            )}
+
+            {!lunchRestricted && (
+              <>
+                {!showScanner && !detectedSnack && (
                   <Button
-                    type="button"
-                    variant="outline"
+                    variant="default"
                     size="xl"
-                    onClick={() => setShowBarcodeScanner(!showBarcodeScanner)}
+                    onClick={() => setShowScanner(true)}
+                    className="w-full h-32 text-xl"
                   >
-                    <Scan className="w-6 h-6" />
+                    <Scan className="w-12 h-12 mr-4" />
+                    Start Barcode Scanner
                   </Button>
-                </div>
-              </div>
-              
-              {showBarcodeScanner && (
-                <Card className="bg-muted border-2 border-dashed">
-                  <CardContent className="pt-6 text-center space-y-4">
-                    <Scan className="w-16 h-16 mx-auto text-muted-foreground" />
-                    <p className="text-muted-foreground">
-                      Barcode scanner simulation
-                    </p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="lg"
-                      onClick={handleBarcodeSimulation}
-                    >
-                      Simulate Barcode Scan
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-              
-              <div className="flex gap-4 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="xl"
-                  onClick={() => navigate("/")}
-                  className="flex-1"
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </Button>
-                
-                <Button
-                  type="submit"
-                  variant="success"
-                  size="xl"
-                  className="flex-1"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "Signing Out..." : "Sign Out Snack"}
-                </Button>
-              </div>
-            </form>
+                )}
+
+                {showScanner && !detectedSnack && (
+                  <Card className="bg-muted border-2 border-dashed">
+                    <CardContent className="pt-6 text-center space-y-4">
+                      <Scan className="w-20 h-20 mx-auto text-primary animate-pulse" />
+                      <p className="text-lg font-medium">
+                        Position barcode in camera view
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Camera functionality coming soon. For now, use simulation:
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="lg"
+                          onClick={simulateBarcodeScanning}
+                          className="flex-1"
+                        >
+                          Simulate Scan
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="lg"
+                          onClick={() => setShowScanner(false)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {detectedSnack && (
+                  <div className="space-y-4">
+                    <Card className="bg-primary/5 border-2 border-primary">
+                      <CardContent className="pt-6 text-center space-y-4">
+                        <CheckCircle className="w-16 h-16 mx-auto text-primary" />
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-2">Detected Snack:</p>
+                          <p className="text-2xl font-bold text-primary">
+                            {detectedSnack.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Barcode: {scannedBarcode}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <div className="flex gap-4">
+                      <Button
+                        variant="outline"
+                        size="xl"
+                        onClick={() => {
+                          setDetectedSnack(null);
+                          setScannedBarcode("");
+                          setShowScanner(false);
+                        }}
+                        className="flex-1"
+                        disabled={isSubmitting}
+                      >
+                        Cancel
+                      </Button>
+
+                      <Button
+                        variant="success"
+                        size="xl"
+                        onClick={handleSubmit}
+                        className="flex-1"
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? "Logging..." : "Confirm & Log"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            <Button
+              variant="ghost"
+              size="lg"
+              onClick={() => navigate("/")}
+              className="w-full"
+            >
+              Back to Home
+            </Button>
           </CardContent>
         </Card>
       </main>
