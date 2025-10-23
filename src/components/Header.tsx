@@ -13,7 +13,7 @@ const Header = () => {
             <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-xl">SS</span>
             </div>
-            <h1 className="text-2xl font-bold text-foreground">SmartSnack</h1>
+            <h1 className="text-2xl font-bold text-foreground">Eastside Eats</h1>
           </Link>
           
           <nav className="flex gap-2">

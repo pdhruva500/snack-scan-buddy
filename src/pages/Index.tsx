@@ -22,18 +22,18 @@ const Index = () => {
             <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/50 to-transparent flex items-end justify-center pb-8">
               <div>
                 <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-2 flex items-center justify-center gap-3">
-                  SmartSnack
+                  Eastside Eats
                   <Sparkles className="w-8 h-8 sm:w-10 sm:h-10 text-primary" />
                 </h1>
                 <p className="text-lg sm:text-xl text-muted-foreground">
-                  AI-Powered Cafeteria Snack Tracker
+                  Barcode-Powered Snack Tracking
                 </p>
               </div>
             </div>
           </div>
           
           <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
-            Say goodbye to paper sign-out sheets! Track your snacks quickly and easily with our modern digital system.
+            No more messy handwriting for cashiers to decipher. Scan your snack's barcode and we'll handle the rest.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
@@ -54,21 +54,7 @@ const Index = () => {
         </div>
         
         {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mt-16">
-          <Card className="text-center shadow-md hover:shadow-lg transition-shadow border-2">
-            <CardHeader>
-              <div className="w-16 h-16 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <ClipboardList className="w-8 h-8 text-primary" />
-              </div>
-              <CardTitle>Easy Sign-Out</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription className="text-base">
-                Quick and simple process to log your snack. Just enter your name and select your item.
-              </CardDescription>
-            </CardContent>
-          </Card>
-          
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mt-16">
           <Card className="text-center shadow-md hover:shadow-lg transition-shadow border-2">
             <CardHeader>
               <div className="w-16 h-16 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-4">
@@ -78,7 +64,7 @@ const Index = () => {
             </CardHeader>
             <CardContent>
               <CardDescription className="text-base">
-                Use the barcode scanner for even faster sign-outs. AI-powered recognition coming soon!
+                Scan your snack's barcode for instant logging. AI-powered recognition automatically identifies items.
               </CardDescription>
             </CardContent>
           </Card>
@@ -92,7 +78,7 @@ const Index = () => {
             </CardHeader>
             <CardContent>
               <CardDescription className="text-base">
-                Staff can easily view all logs, export to CSV, and manage the system.
+                Cashiers receive clean, digital logs with no handwriting to decode. Export to CSV anytime.
               </CardDescription>
             </CardContent>
           </Card>
