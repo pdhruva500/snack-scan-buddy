@@ -41,6 +41,11 @@ const Index = () => {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/50 to-transparent flex items-end justify-center pb-8">
               <div>
+
+                <div className="flex flex-col items-center justify-center">
+                  <img src="/eaglelogo.png" alt="Eastside Prep logo" className="w-20 sm:w-24 mb-3" />
+                </div>
+                
                 <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-2 flex items-center justify-center gap-3">
                   Eastside Eats
                   <Sparkles className="w-8 h-8 sm:w-10 sm:h-10 text-primary" />
