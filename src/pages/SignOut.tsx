@@ -64,19 +64,24 @@ const SignOut = () => {
 
     setIsSubmitting(true);
 
-
     try {
-    // ✅ Safely fetch the authenticated user
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-    if (authError) throw authError;
+      // Get the latest user data including metadata
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
 
-    // ✅ Insert snack log with full name
-    const { error } = await supabase.from("snack_logs").insert({
-      user_id: authUser?.id,
-      snack_id: detectedSnack.id,
-      snack_name: detectedSnack.name,
-      student_name: authUser?.user_metadata?.full_name || user.email || "Unknown",
-    });
+      const authUser = userData.user;
+      if (!authUser?.user_metadata?.full_name) {
+        toast.error("User profile is incomplete. Please contact an administrator.");
+        return;
+      }
+
+      // Insert snack log with full name from metadata
+      const { error } = await supabase.from("snack_logs").insert({
+        user_id: authUser.id,
+        snack_id: detectedSnack.id,
+        snack_name: detectedSnack.name,
+        student_name: authUser.user_metadata.full_name,
+      });
     if (error) throw error;
 
     toast.success("Snack logged successfully!", {
