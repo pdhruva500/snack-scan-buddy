@@ -22,7 +22,9 @@ const Admin = () => {
   const navigate = useNavigate();
   const [logs, setLogs] = useState<SnackLog[]>([]);
   const [loading, setLoading] = useState(false);
+
   
+
   //DEV NOTE: Set to true to skip PIN entry during development
   const [authenticated, setAuthenticated] = useState(true);
   const [pin, setPin] = useState("");
@@ -45,6 +47,13 @@ const Admin = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (authenticated) {
+      loadLogs();
+    }
+  }, [authenticated]);
+
 
   const verifyPin = async () => {
     if (!pin) {
