@@ -63,41 +63,41 @@ const SignOut = () => {
     if (!user || !detectedSnack) return;
 
     setIsSubmitting(true);
+
+
     try {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", user.id)
-        .single();
+    // ✅ Safely fetch the authenticated user
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+    if (authError) throw authError;
 
-      const { error } = await supabase.from("snack_logs").insert({
-        user_id: user.id,
-        snack_id: detectedSnack.id,
-        snack_name: detectedSnack.name,
-        student_name: profile?.full_name || user.email || "Unknown",
-      });
+    // ✅ Insert snack log with full name
+    const { error } = await supabase.from("snack_logs").insert({
+      user_id: authUser?.id,
+      snack_id: detectedSnack.id,
+      snack_name: detectedSnack.name,
+      student_name: authUser?.user_metadata?.full_name || user.email || "Unknown",
+    });
+    if (error) throw error;
 
-      if (error) throw error;
+    toast.success("Snack logged successfully!", {
+      description: `${detectedSnack.name} signed out`,
+      icon: <CheckCircle className="w-4 h-4" />,
+    });
 
-      toast.success("Snack logged successfully!", {
-        description: `${detectedSnack.name} signed out`,
-        icon: <CheckCircle className="w-4 h-4" />,
-      });
+    setDetectedSnack(null);
+    setScannedBarcode("");
+    setShowScanner(false);
 
-      setDetectedSnack(null);
-      setScannedBarcode("");
-      setShowScanner(false);
-
-      setTimeout(() => {
-        navigate("/");
-      }, 1500);
-    } catch (error) {
-      console.error("Error logging snack:", error);
-      toast.error("Failed to log snack. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    setTimeout(() => {
+      navigate("/");
+    }, 1500);
+  } catch (error) {
+    console.error("Error logging snack:", error);
+    toast.error("Failed to log snack. Please try again.");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const simulateBarcodeScanning = () => {
     // Simulate scanning by randomly selecting a barcode from sample data
