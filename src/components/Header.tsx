@@ -21,7 +21,7 @@ const Header = () => {
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-xl">SS</span>
+              <span className="text-primary-foreground font-bold text-xl">EE</span>
             </div>
             <h1 className="text-2xl font-bold text-foreground">Eastside Eats</h1>
           </Link>
