@@ -1,16 +1,14 @@
-import { motion } from "framer-motion";
+import React from "react";
 
-export default function Dashboard() {
+const Dashboard = () => {
   return (
-    <motion.div 
-      className="min-h-screen flex flex-col items-center justify-center bg-background text-white"
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }}
-    >
-      <h1 className="text-5xl font-bold mb-4">Welcome to Your Dashboard</h1>
-      <p className="text-lg text-white/80">
-        Track your snacks and see your progress here.
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-600 to-purple-700 text-white">
+      <h1 className="text-4xl font-bold mb-4">Your Dashboard</h1>
+      <p className="text-lg text-white/80 mb-8">
+        Welcome to your personalized dashboard! More features coming soon.
       </p>
-    </motion.div>
+    </div>
   );
-}
+};
+
+export default Dashboard;
