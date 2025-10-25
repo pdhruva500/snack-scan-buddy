@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Home, ClipboardList, UserCircle, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { BarChart } from "lucide-react";
+import { Home, ClipboardList, UserCircle, LogOut, BarChart3 } from "lucide-react";
 
 const Header = () => {
   const location = useLocation();
@@ -56,7 +56,7 @@ const Header = () => {
                 size="default"
               >
                 <Link to="/dashboard">
-                <BarChart className="w-4 h-4" />
+                  <BarChart3 className="w-4 h-4" />
                   <span className="hidden sm:inline">Dashboard</span>
                 </Link>
               </Button>
