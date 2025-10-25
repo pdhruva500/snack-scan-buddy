@@ -230,6 +230,7 @@ const Index = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1, duration: 0.5 }}
+          className="fixed bottom-4 left-0 right-0 text-center text-white/80 text-sm"
         >
           Created by Prasham Dhruva
         </motion.p>
