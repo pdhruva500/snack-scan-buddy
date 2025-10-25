@@ -72,7 +72,21 @@ export const BarcodeScanner = ({ onDetected, onClose }: BarcodeScannerProps) => 
       } catch (err) {
         console.error("Scanner error:", err);
         if (mounted) {
-          setError("Failed to access camera. Please grant camera permissions.");
+          let errorMessage = "Failed to access camera. ";
+          if (err instanceof Error) {
+            if (err.name === 'NotAllowedError') {
+              errorMessage += "Camera permission was denied. Please allow camera access in your browser settings.";
+            } else if (err.name === 'NotFoundError') {
+              errorMessage += "No camera found on this device.";
+            } else if (err.name === 'NotReadableError') {
+              errorMessage += "Camera is already in use by another application.";
+            } else {
+              errorMessage += err.message;
+            }
+          } else {
+            errorMessage += "Please grant camera permissions in your browser.";
+          }
+          setError(errorMessage);
           setIsLoading(false);
         }
       }
