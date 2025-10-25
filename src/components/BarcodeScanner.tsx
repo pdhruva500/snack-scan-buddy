@@ -94,7 +94,7 @@ export const BarcodeScanner = ({ onDetected, onClose }: BarcodeScannerProps) => 
 
     startScanner();
 
-    // Cleanup function
+    // Cleanup function (runs when component unmounts)
     return () => {
       mounted = false;
       if (readerRef.current) {
@@ -126,7 +126,20 @@ export const BarcodeScanner = ({ onDetected, onClose }: BarcodeScannerProps) => 
           variant="ghost"
           size="icon"
           className="absolute top-4 right-4 z-10 bg-background/20 hover:bg-background/40"
-          onClick={onClose}
+          onClick={() => {
+            // ✅ Stop the camera immediately when closing
+            const stream = videoRef.current?.srcObject as MediaStream | null;
+            if (stream) {
+              stream.getTracks().forEach(track => track.stop());
+            }
+            if (videoRef.current) {
+              videoRef.current.srcObject = null;
+            }
+            readerRef.current = null;
+
+            // Then trigger parent close
+            onClose();
+          }}
         >
           <X className="h-6 w-6 text-white" />
         </Button>
