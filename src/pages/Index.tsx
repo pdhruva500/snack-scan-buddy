@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
@@ -6,17 +6,42 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Camera, Shield, Zap, Loader2, Scan, BarChart3 } from "lucide-react";
 import cafeteriaHero from "@/assets/cafeteria-hero.jpg";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
+import { FoodItemDisplay, FoodItemSkeleton } from "@/components/FoodItemDisplay";
+import { fetchFoodProduct } from "@/services/foodService";
 
 const Index = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const [showScanner, setShowScanner] = useState(false);
+  const [scannedProduct, setScannedProduct] = useState<any>(null);
+  const [isLoadingProduct, setIsLoadingProduct] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
+
+  const handleBarcodeDetected = async (barcode: string) => {
+    setShowScanner(false);
+    setIsLoadingProduct(true);
+    
+    try {
+      const productData = await fetchFoodProduct(barcode);
+      if (productData && productData.product) {
+        setScannedProduct(productData.product);
+      } else {
+        alert("Product not found. Please try another barcode.");
+      }
+    } catch (error) {
+      console.error("Error fetching product:", error);
+      alert("Failed to fetch product information.");
+    } finally {
+      setIsLoadingProduct(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -79,12 +104,25 @@ const Index = () => {
             transition={{ delay: 0.6, duration: 0.5 }}
             className="flex gap-4 justify-center flex-wrap"
           >
-            <Link to="/sign-out">
-              <Button size="lg" variant="outline"className="bg-white/10 text-white border-white hover:bg-white/20 hover:scale-105 transition-transform backdrop-blur-sm">
-                <Scan className="mr-2 h-5 w-5" />
-                Scan a Snack
-              </Button>
-            </Link>
+            <Button 
+              size="lg" 
+              variant="outline"
+              className="bg-white/10 text-white border-white hover:bg-white/20 hover:scale-105 transition-transform backdrop-blur-sm"
+              onClick={() => setShowScanner(true)}
+            >
+              <Scan className="mr-2 h-5 w-5" />
+              Scan a Snack
+            </Button>
+
+            <Button 
+              size="lg" 
+              variant="outline"
+              className="bg-white/10 text-white border-white hover:bg-white/20 hover:scale-105 transition-transform backdrop-blur-sm"
+              onClick={() => handleBarcodeDetected('3017620422003')}
+            >
+              <Camera className="mr-2 h-5 w-5" />
+              Test with Nutella
+            </Button>
 
             <Link to="/dashboard">
               <Button size="lg" variant="outline"className="bg-white/10 text-white border-white hover:bg-white/20 hover:scale-105 transition-transform backdrop-blur-sm">
@@ -96,6 +134,33 @@ const Index = () => {
           </motion.div>
         </motion.div>
       </motion.div>
+
+      {/* Barcode Scanner */}
+      <AnimatePresence>
+        {showScanner && (
+          <BarcodeScanner
+            onDetected={handleBarcodeDetected}
+            onClose={() => setShowScanner(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Scanned Product Display */}
+      {(isLoadingProduct || scannedProduct) && (
+        <div className="container mx-auto px-4 py-12">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            {isLoadingProduct ? (
+              <FoodItemSkeleton />
+            ) : scannedProduct ? (
+              <FoodItemDisplay product={scannedProduct} />
+            ) : null}
+          </motion.div>
+        </div>
+      )}
 
       <div className="container mx-auto px-4 py-20">
         <motion.div
