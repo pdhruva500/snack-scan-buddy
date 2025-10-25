@@ -87,7 +87,7 @@ const Index = () => {
             </Link>
 
             <Link to="/dashboard">
-              <Button size="lg" variant="outline"className="bg-white/10 text-white border-white hover:bg-white/20 hover:scale-105 transition-transform backdrop-blur-sm">
+              <Button size="lg" className="shadow-2xl hover:scale-105 transition-transform">
               <BarChart3 className="mr-2 h-5 w-5" />
               Dashboard
               </Button>
