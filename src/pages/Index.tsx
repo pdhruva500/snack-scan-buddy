@@ -214,15 +214,11 @@ const Index = () => {
           </Card>
         </motion.div>
       </div>
-       <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1, duration: 0.5 }}
-        className="text-center text-white/80 text-sm mb-4"
-      >
+      <p className="fixed bottom-2 left-1/2 transform -translate-x-1/2 text-white/80 text-sm">
         Created by Prasham Dhruva
-      </motion.p>
-      </div>
+      </p>
+    </div>
+
   );
 };
 
