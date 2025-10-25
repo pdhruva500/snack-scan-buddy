@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { Header } from "@/components/Header";
+import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Camera, Shield, Zap, Loader2, Scan, BarChart3 } from "lucide-react";
@@ -52,7 +52,7 @@ const Index = () => {
             className="mb-6"
           >
             <h1 className="text-6xl md:text-7xl font-bold mb-4 bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
-              Eastside Eats
+              SnackTrack
             </h1>
             <p className="text-xl md:text-2xl mb-2 font-light">
               Track your snacks in seconds
