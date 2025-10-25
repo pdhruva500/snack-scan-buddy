@@ -50,16 +50,14 @@ const Header = () => {
             </Button>
 
              <Button
-              asChild
-              variant={location.pathname === "/dashboard" ? "default" : "ghost"}
-              size="default"
-            >
-              <Link to="/dashboard">
-                <BarChart3 className="w-4 h-4" />
-                <span className="hidden sm:inline">Dashboard</span>
-              </Link>
-            </Button>
-            
+                asChild
+                variant={location.pathname === "/dashboard" ? "default" : "ghost"}
+                size="default"
+              >
+                <Link to="/dashboard">
+                  <span className="hidden sm:inline">Dashboard</span>
+                </Link>
+              </Button>
             <Button
               asChild
               variant={location.pathname === "/admin" ? "default" : "ghost"}
