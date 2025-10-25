@@ -1,6 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, ClipboardList, UserCircle, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Home, ClipboardList, UserCircle, LogOut, BarChart3 } from "lucide-react";
