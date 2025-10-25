@@ -16,6 +16,7 @@ export const BarcodeScanner = ({ onDetected, onClose }: BarcodeScannerProps) => 
   const readerRef = useRef<BrowserMultiFormatReader | null>(null);
 
   useEffect(() => {
+    let mounted = true;
     const startScanner = async () => {
       try {
         const codeReader = new BrowserMultiFormatReader();
@@ -34,33 +35,64 @@ export const BarcodeScanner = ({ onDetected, onClose }: BarcodeScannerProps) => 
           device.label.toLowerCase().includes('back')
         ) || videoInputDevices[0];
 
-        await codeReader.decodeFromVideoDevice(
-          selectedDevice.deviceId,
-          videoRef.current!,
-          (result) => {
-            if (result) {
-              onDetected(result.getText());
-            }
+        // Add constraints for better video quality and performance
+        const constraints = {
+          video: {
+            deviceId: selectedDevice.deviceId,
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: "environment",
           }
-        );
+        };
+
+        // First set up the video stream
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        if (videoRef.current && mounted) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+
+        // Then start the barcode detection
+        if (mounted) {
+          await codeReader.decodeFromVideoDevice(
+            selectedDevice.deviceId,
+            videoRef.current!,
+            (result) => {
+              if (result && mounted) {
+                const barcode = result.getText();
+                if (barcode && barcode.length > 0) {
+                  onDetected(barcode);
+                }
+              }
+            }
+          );
+        }
 
         setIsLoading(false);
       } catch (err) {
         console.error("Scanner error:", err);
-        setError("Failed to access camera. Please grant camera permissions.");
-        setIsLoading(false);
+        if (mounted) {
+          setError("Failed to access camera. Please grant camera permissions.");
+          setIsLoading(false);
+        }
       }
     };
 
     startScanner();
 
+    // Cleanup function
     return () => {
+      mounted = false;
       if (readerRef.current) {
         try {
-          const stream = videoRef.current?.srcObject as MediaStream;
+          const stream = videoRef.current?.srcObject as MediaStream | null;
           if (stream) {
             stream.getTracks().forEach(track => track.stop());
           }
+          if (videoRef.current) {
+            videoRef.current.srcObject = null;
+          }
+          readerRef.current = null;
         } catch (e) {
           console.error("Error stopping scanner:", e);
         }
@@ -108,6 +140,9 @@ export const BarcodeScanner = ({ onDetected, onClose }: BarcodeScannerProps) => 
             ref={videoRef}
             className={`w-full rounded-lg ${isLoading || error ? 'hidden' : ''}`}
             style={{ maxHeight: '70vh' }}
+            autoPlay
+            playsInline
+            muted
           />
           
           {!isLoading && !error && (
