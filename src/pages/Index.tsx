@@ -57,7 +57,7 @@ const Index = () => {
                 Eastside Eats
               </h1>
               <img
-                src="/images/eagle-logo.png"
+                src="public/eaglelogo.png"
                 alt="Eastside Eats Eagle Logo"
                 className="w-16 h-16 md:w-20 md:h-20"
               />
