@@ -214,9 +214,9 @@ const Index = () => {
           </Card>
         </motion.div>
       </div>
-      <p className="fixed bottom-2 left-1/2 transform -translate-x-1/2 text-white/80 text-sm">
-        Created by Prasham Dhruva
-      </p>
+      <footer className="fixed bottom-4 lefto-0 w-full text-center text-white/80 text-sm z-50">
+      Created by Prasham Dhruva
+      </footer>
     </div>
 
   );
