@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { BrowserMultiFormatReader } from "@zxing/library"; // ✅ Correct import
+import { BrowserMultiFormatReader } from "@zxing/library";
 import { motion } from "framer-motion";
 import { Camera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,36 +13,41 @@ export const BarcodeScanner = ({ onDetected, onClose }: BarcodeScannerProps) => 
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null);
+  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
 
   useEffect(() => {
     const startScanner = async () => {
       try {
         const codeReader = new BrowserMultiFormatReader();
-        codeReaderRef.current = codeReader;
+        readerRef.current = codeReader;
 
-        // Ask browser for camera permissions
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
+        const videoInputDevices = await BrowserMultiFormatReader.listVideoInputDevices();
+        
+        if (videoInputDevices.length === 0) {
+          setError("No camera found on this device");
+          setIsLoading(false);
+          return;
         }
 
-        // Decode continuously from the stream
-        codeReader.decodeFromVideoDevice(null, videoRef.current!, (result, err) => {
-          if (result) {
-            console.log("✅ Barcode detected:", result.getText());
-            onDetected(result.getText());
+        // Prefer back camera on mobile
+        const selectedDevice = videoInputDevices.find(device => 
+          device.label.toLowerCase().includes('back')
+        ) || videoInputDevices[0];
+
+        await codeReader.decodeFromVideoDevice(
+          selectedDevice.deviceId,
+          videoRef.current!,
+          (result) => {
+            if (result) {
+              onDetected(result.getText());
+            }
           }
-          if (err && !(err instanceof (window as any).ZXing.NotFoundException)) {
-            console.warn("Decode error:", err);
-          }
-        });
+        );
 
         setIsLoading(false);
       } catch (err) {
-        console.error("Camera error:", err);
-        setError("Unable to access camera. Please allow permissions.");
+        console.error("Scanner error:", err);
+        setError("Failed to access camera. Please grant camera permissions.");
         setIsLoading(false);
       }
     };
@@ -50,12 +55,15 @@ export const BarcodeScanner = ({ onDetected, onClose }: BarcodeScannerProps) => 
     startScanner();
 
     return () => {
-      if (codeReaderRef.current) {
-        codeReaderRef.current.reset();
-      }
-      if (videoRef.current?.srcObject) {
-        const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-        tracks.forEach((track) => track.stop());
+      if (readerRef.current) {
+        try {
+          const stream = videoRef.current?.srcObject as MediaStream;
+          if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+          }
+        } catch (e) {
+          console.error("Error stopping scanner:", e);
+        }
       }
     };
   }, [onDetected]);
@@ -98,10 +106,10 @@ export const BarcodeScanner = ({ onDetected, onClose }: BarcodeScannerProps) => 
         <div className="relative rounded-lg overflow-hidden">
           <video
             ref={videoRef}
-            className={`w-full rounded-lg ${isLoading || error ? "hidden" : ""}`}
-            style={{ maxHeight: "70vh" }}
+            className={`w-full rounded-lg ${isLoading || error ? 'hidden' : ''}`}
+            style={{ maxHeight: '70vh' }}
           />
-
+          
           {!isLoading && !error && (
             <motion.div
               initial={{ opacity: 0 }}
