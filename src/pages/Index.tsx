@@ -1,11 +1,12 @@
-import { Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ClipboardList, UserCircle, Camera, Sparkles, Loader2 } from "lucide-react";
-import heroImage from "@/assets/cafeteria-hero.jpg";
-import { useAuth } from "@/hooks/useAuth";
+import { Camera, Shield, Zap, Loader2, Scan, BarChart3 } from "lucide-react";
+import cafeteriaHero from "@/assets/cafeteria-hero.jpg";
+import { motion } from "framer-motion";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -26,105 +27,180 @@ const Index = () => {
   }
 
   if (!user) return null;
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
-      <main className="container mx-auto px-4 py-8">
-        {/* Hero Section */}
-        <div className="text-center mb-12 space-y-6">
-          <div className="relative h-64 sm:h-80 rounded-2xl overflow-hidden shadow-xl mb-8">
-            <img 
-              src={heroImage} 
-              alt="Cafeteria snacks" 
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/50 to-transparent flex items-end justify-center pb-8">
-              <div>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+        className="relative h-[600px] bg-cover bg-center flex items-center justify-center overflow-hidden"
+        style={{ backgroundImage: `url(${cafeteriaHero})` }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70" />
+        <motion.div
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.8 }}
+          className="relative z-10 text-center text-white px-4"
+        >
+          <motion.div
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.4, duration: 0.5 }}
+            className="mb-6"
+          >
+            <h1 className="text-6xl md:text-7xl font-bold mb-4 bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
+              SnackTrack
+            </h1>
+            <p className="text-xl md:text-2xl mb-2 font-light">
+              Track your snacks in seconds
+            </p>
+            <p className="text-sm md:text-base text-white/80 max-w-2xl mx-auto">
+              Scan barcodes or use AI-powered camera recognition
+            </p>
+          </motion.div>
+          
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.6, duration: 0.5 }}
+            className="flex gap-4 justify-center flex-wrap"
+          >
+            <Link to="/sign-out">
+              <Button size="lg" className="shadow-2xl hover:scale-105 transition-transform">
+                <Scan className="mr-2 h-5 w-5" />
+                Scan a Snack
+              </Button>
+            </Link>
+            <Link to="/admin">
+              <Button size="lg" variant="outline" className="bg-white/10 text-white border-white hover:bg-white/20 hover:scale-105 transition-transform backdrop-blur-sm">
+                <BarChart3 className="mr-2 h-5 w-5" />
+                Admin Dashboard
+              </Button>
+            </Link>
+          </motion.div>
+        </motion.div>
+      </motion.div>
 
-                <div className="flex flex-col items-center justify-center">
-                  <img src="/eaglelogo.png" alt="Eastside Prep logo" className="w-20 sm:w-24 mb-3" />
-                </div>
-                
-                <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-2 flex items-center justify-center gap-3">
-                  Eastside Eats
-                  <Sparkles className="w-8 h-8 sm:w-10 sm:h-10 text-primary" />
-                </h1>
-                <p className="text-lg sm:text-xl text-muted-foreground">
-                  Barcode-Powered Snack Tracking
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
-            No more messy handwriting for cashiers to decipher. Scan your snack's barcode and we'll handle the rest.
+      <div className="container mx-auto px-4 py-20">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-12"
+        >
+          <h2 className="text-4xl font-bold mb-4">How It Works</h2>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Lightning-fast snack logging with cutting-edge technology
           </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
-            <Button asChild variant="default" size="xl" className="w-full sm:w-auto min-w-64">
-              <Link to="/sign-out">
-                <ClipboardList className="w-5 h-5" />
-                Sign Out a Snack
-              </Link>
-            </Button>
-            
-            <Button asChild variant="outline" size="xl" className="w-full sm:w-auto min-w-64">
-              <Link to="/admin">
-                <UserCircle className="w-5 h-5" />
-                View Admin Dashboard
-              </Link>
-            </Button>
-          </div>
+        </motion.div>
+
+        <div className="grid md:grid-cols-3 gap-8 mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1, duration: 0.6 }}
+          >
+            <Card className="hover:shadow-xl transition-all hover:-translate-y-1 h-full border-2">
+              <CardHeader>
+                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                  <Scan className="h-8 w-8 text-primary" />
+                </div>
+                <CardTitle>Barcode Scanning</CardTitle>
+                <CardDescription>
+                  Instant snack recognition via barcode
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Point your camera at any barcode and we'll instantly identify and log your snack. 
+                  Fast, accurate, and seamless.
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+          >
+            <Card className="hover:shadow-xl transition-all hover:-translate-y-1 h-full border-2 border-primary/50">
+              <CardHeader>
+                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                  <Camera className="h-8 w-8 text-primary" />
+                </div>
+                <CardTitle>AI Recognition</CardTitle>
+                <CardDescription>
+                  Smart camera identifies snacks visually
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  No barcode? No problem! Our AI-powered camera can identify snacks 
+                  visually with remarkable accuracy.
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3, duration: 0.6 }}
+          >
+            <Card className="hover:shadow-xl transition-all hover:-translate-y-1 h-full border-2">
+              <CardHeader>
+                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                  <BarChart3 className="h-8 w-8 text-primary" />
+                </div>
+                <CardTitle>Real-Time Analytics</CardTitle>
+                <CardDescription>
+                  Live dashboard with insights
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Track all activity in real-time with our admin dashboard. 
+                  Search, filter, and analyze snack logs instantly.
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
-        
-        {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mt-16">
-          <Card className="text-center shadow-md hover:shadow-lg transition-shadow border-2">
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.4, duration: 0.6 }}
+          className="text-center"
+        >
+          <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
             <CardHeader>
-              <div className="w-16 h-16 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Camera className="w-8 h-8 text-primary" />
+              <div className="h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center mb-4 mx-auto">
+                <Shield className="h-8 w-8 text-primary" />
               </div>
-              <CardTitle>Barcode Scanner</CardTitle>
+              <CardTitle className="text-2xl">Secure & Private</CardTitle>
+              <CardDescription className="text-base">
+                Your data is protected with enterprise-grade security
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <CardDescription className="text-base">
-                Scan your snack's barcode for instant logging. AI-powered recognition automatically identifies items.
-              </CardDescription>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                PIN-protected admin access, encrypted data storage, and role-based permissions 
+                ensure your cafeteria tracking system stays secure and compliant.
+              </p>
             </CardContent>
           </Card>
-          
-          <Card className="text-center shadow-md hover:shadow-lg transition-shadow border-2">
-            <CardHeader>
-              <div className="w-16 h-16 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <UserCircle className="w-8 h-8 text-primary" />
-              </div>
-              <CardTitle>Admin Dashboard</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription className="text-base">
-                Cashiers receive clean, digital logs with no handwriting to decode. Export to CSV anytime.
-              </CardDescription>
-            </CardContent>
-          </Card>
-        </div>
-        
-        {/* Coming Soon Section */}
-        <Card className="max-w-3xl mx-auto mt-16 border-2 border-dashed border-primary/30 bg-primary/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 justify-center">
-              <Sparkles className="w-5 h-5 text-primary" />
-              Coming Soon: AI Camera Recognition
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CardDescription className="text-base text-center">
-              In the future, simply hold up your snack to the camera and our AI will automatically identify it for you. 
-              No typing required!
-            </CardDescription>
-          </CardContent>
-        </Card>
-      </main>
+        </motion.div>
+      </div>
     </div>
   );
 };

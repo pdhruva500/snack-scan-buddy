@@ -8,8 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Download, RefreshCw, Lock, Loader2 } from "lucide-react";
+import { Download, RefreshCw, Lock, Loader2, Search, LogOut } from "lucide-react";
 import CryptoJS from "crypto-js";
+import { motion } from "framer-motion";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 interface SnackLog {
   id: string;
@@ -21,14 +23,13 @@ interface SnackLog {
 const Admin = () => {
   const navigate = useNavigate();
   const [logs, setLogs] = useState<SnackLog[]>([]);
+  const [filteredLogs, setFilteredLogs] = useState<SnackLog[]>([]);
   const [loading, setLoading] = useState(false);
-
-  
-
-  //DEV NOTE: Set to true to skip PIN entry during development
-  const [authenticated, setAuthenticated] = useState(true);
+  const [authenticated, setAuthenticated] = useState(false);
   const [pin, setPin] = useState("");
   const [verifying, setVerifying] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [chartData, setChartData] = useState<Array<{ date: string; count: number }>>([]);
 
   const loadLogs = async () => {
     setLoading(true);
@@ -40,6 +41,8 @@ const Admin = () => {
 
       if (error) throw error;
       setLogs(data || []);
+      setFilteredLogs(data || []);
+      generateChartData(data || []);
     } catch (error) {
       console.error("Error loading logs:", error);
       toast.error("Failed to load logs");
@@ -48,11 +51,59 @@ const Admin = () => {
     }
   };
 
+  const generateChartData = (logsData: SnackLog[]) => {
+    const dateMap = new Map<string, number>();
+    
+    logsData.forEach(log => {
+      const date = new Date(log.timestamp).toLocaleDateString();
+      dateMap.set(date, (dateMap.get(date) || 0) + 1);
+    });
+
+    const chartArray = Array.from(dateMap.entries())
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .slice(-7); // Last 7 days
+
+    setChartData(chartArray);
+  };
+
   useEffect(() => {
     if (authenticated) {
       loadLogs();
+
+      // Set up real-time subscription
+      const channel = supabase
+        .channel('snack-logs-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'snack_logs'
+          },
+          () => {
+            loadLogs();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [authenticated]);
+
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredLogs(logs);
+    } else {
+      const filtered = logs.filter(log =>
+        log.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.snack_name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredLogs(filtered);
+    }
+  }, [searchTerm, logs]);
 
 
   const verifyPin = async () => {
@@ -188,90 +239,118 @@ const Admin = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      <div className="container mx-auto px-4 py-8 space-y-6">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between"
+        >
+          <div>
+            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+            <p className="text-muted-foreground">Real-time snack tracking and analytics</p>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={loadLogs} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+            <Button onClick={handleDownloadCSV} variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+            <Button onClick={() => {
+              setAuthenticated(false);
+              navigate("/");
+            }} variant="ghost" size="sm">
+              <LogOut className="h-4 w-4 mr-2" />
+              Exit
+            </Button>
+          </div>
+        </motion.div>
 
-      <main className="container mx-auto px-4 py-8">
-        <Card className="shadow-lg border-2">
-          <CardHeader>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <CardTitle className="text-3xl font-bold">Admin Dashboard</CardTitle>
-                <CardDescription className="text-base mt-1">
-                  Snack sign-out logs for cashier review
-                </CardDescription>
+        {chartData.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>Snacks Logged (Last 7 Days)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="hsl(var(--primary))" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>All Snack Logs</CardTitle>
+                  <CardDescription>Total logs: {logs.length}</CardDescription>
+                </div>
+                <div className="relative w-64">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search student or snack..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
               </div>
-
-              <div className="flex gap-2">
-                <Button variant="outline" size="default" onClick={loadLogs} disabled={loading}>
-                  <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-                  Refresh
-                </Button>
-
-                <Button
-                  variant="default"
-                  size="default"
-                  onClick={handleDownloadCSV}
-                  disabled={logs.length === 0}
-                >
-                  <Download className="w-4 h-4" />
-                  Export CSV
-                </Button>
-
-                <Button
-                  variant="outline"
-                  size="default"
-                  onClick={() => {
-                    setAuthenticated(false);
-                    setPin("");
-                    navigate("/");
-                  }}
-                >
-                  Sign Out
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-
-          <CardContent>
-            {logs.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground text-lg">No snack logs yet</p>
-                <p className="text-muted-foreground text-sm mt-2">
-                  Logs will appear here when students scan snacks
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : filteredLogs.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  {searchTerm ? "No matching logs found." : "No snack logs yet."}
                 </p>
-              </div>
-            ) : (
-              <div className="rounded-lg border-2 overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="font-bold">Student Name</TableHead>
-                      <TableHead className="font-bold">Snack</TableHead>
-                      <TableHead className="font-bold">Time</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {logs.map((log) => (
-                      <TableRow key={log.id} className="hover:bg-muted/30">
-                        <TableCell className="font-medium">{log.student_name}</TableCell>
-                        <TableCell>{log.snack_name}</TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {formatDate(log.timestamp)}
-                        </TableCell>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Student Name</TableHead>
+                        <TableHead>Snack Name</TableHead>
+                        <TableHead>Timestamp</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-
-            {logs.length > 0 && (
-              <div className="mt-4 text-center text-sm text-muted-foreground">
-                Total logs: {logs.length}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </main>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredLogs.map((log) => (
+                        <TableRow key={log.id}>
+                          <TableCell className="font-medium">{log.student_name}</TableCell>
+                          <TableCell>{log.snack_name}</TableCell>
+                          <TableCell className="text-muted-foreground">{formatDate(log.timestamp)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
     </div>
   );
 };

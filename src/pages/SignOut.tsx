@@ -1,23 +1,27 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import Header from "@/components/Header";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { Scan, CheckCircle, Loader2, AlertCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import Header from "@/components/Header";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Home, Camera, Check, Scan } from "lucide-react";
+import { toast } from "sonner";
 import { isLunchTime, getLunchTimeMessage } from "@/lib/timeRestrictions";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
+import { motion, AnimatePresence } from "framer-motion";
 
 const SignOut = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
-  const [scannedBarcode, setScannedBarcode] = useState("");
   const [detectedSnack, setDetectedSnack] = useState<{ id: string; name: string } | null>(null);
-  const [lunchRestricted, setLunchRestricted] = useState(false);
+  const [lunchRestrictionMessage, setLunchRestrictionMessage] = useState<string | null>(null);
+  const [isIdentifying, setIsIdentifying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -26,36 +30,105 @@ const SignOut = () => {
   }, [user, loading, navigate]);
 
   useEffect(() => {
-    setLunchRestricted(isLunchTime());
+    if (isLunchTime()) {
+      setLunchRestrictionMessage(getLunchTimeMessage());
+    } else {
+      setLunchRestrictionMessage(null);
+    }
+    
     const interval = setInterval(() => {
-      setLunchRestricted(isLunchTime());
-    }, 60000); // Check every minute
+      if (isLunchTime()) {
+        setLunchRestrictionMessage(getLunchTimeMessage());
+      } else {
+        setLunchRestrictionMessage(null);
+      }
+    }, 60000);
 
     return () => clearInterval(interval);
   }, []);
 
-  const handleBarcodeInput = async (barcode: string) => {
+  const handleBarcodeDetected = async (barcode: string) => {
+    setShowScanner(false);
+    
     try {
-      const { data: snack, error } = await supabase
+      const { data, error } = await supabase
         .from("snacks")
         .select("id, name")
         .eq("barcode", barcode)
-        .maybeSingle();
+        .single();
+
+      if (error || !data) {
+        toast.error("Barcode not found", {
+          description: "Using AI to identify snack..."
+        });
+        await captureAndIdentifySnack();
+        return;
+      }
+
+      setDetectedSnack(data);
+      toast.success("Snack detected!", {
+        description: data.name,
+      });
+    } catch (err) {
+      console.error("Error fetching snack:", err);
+      toast.error("An error occurred while looking up the snack.");
+    }
+  };
+
+  const captureAndIdentifySnack = async () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    setIsIdentifying(true);
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+
+    if (!context) return;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0);
+
+    const imageData = canvas.toDataURL('image/jpeg', 0.8);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('identify-snack', {
+        body: { imageData }
+      });
 
       if (error) throw error;
 
-      if (snack) {
-        setDetectedSnack(snack);
-        setScannedBarcode(barcode);
-        toast.success("Snack detected!", {
-          description: snack.name,
-        });
+      const snackName = data.snackName;
+      
+      // Try to find or create snack in database
+      const { data: existingSnack } = await supabase
+        .from("snacks")
+        .select("id, name")
+        .eq("name", snackName)
+        .single();
+
+      if (existingSnack) {
+        setDetectedSnack(existingSnack);
       } else {
-        toast.error("Barcode not recognized. Please try again.");
+        // Create new snack entry
+        const { data: newSnack, error: createError } = await supabase
+          .from("snacks")
+          .insert({ name: snackName, barcode: `AI-${Date.now()}` })
+          .select("id, name")
+          .single();
+
+        if (createError) throw createError;
+        setDetectedSnack(newSnack);
       }
-    } catch (error) {
-      console.error("Error looking up barcode:", error);
-      toast.error("Failed to process barcode");
+
+      toast.success("Snack identified!", {
+        description: snackName,
+      });
+    } catch (err) {
+      console.error("Error identifying snack:", err);
+      toast.error("Failed to identify snack. Please try again.");
+    } finally {
+      setIsIdentifying(false);
     }
   };
 
@@ -65,7 +138,6 @@ const SignOut = () => {
     setIsSubmitting(true);
 
     try {
-      // Get the latest user data including metadata
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
 
@@ -75,40 +147,41 @@ const SignOut = () => {
         return;
       }
 
-      // Insert snack log with full name from metadata
       const { error } = await supabase.from("snack_logs").insert({
         user_id: authUser.id,
         snack_id: detectedSnack.id,
         snack_name: detectedSnack.name,
         student_name: authUser.user_metadata.full_name,
       });
-    if (error) throw error;
+      
+      if (error) throw error;
 
-    toast.success("Snack logged successfully!", {
-      description: `${detectedSnack.name} signed out`,
-      icon: <CheckCircle className="w-4 h-4" />,
-    });
+      toast.success("Snack logged successfully!", {
+        description: `${detectedSnack.name} signed out`,
+      });
 
+      setDetectedSnack(null);
+      setShowScanner(false);
+
+      setTimeout(() => {
+        navigate("/");
+      }, 1500);
+    } catch (error) {
+      console.error("Error logging snack:", error);
+      toast.error("Failed to log snack. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleScanClick = () => {
+    setShowScanner(true);
     setDetectedSnack(null);
-    setScannedBarcode("");
+  };
+
+  const handleAIIdentify = async () => {
     setShowScanner(false);
-
-    setTimeout(() => {
-      navigate("/");
-    }, 1500);
-  } catch (error) {
-    console.error("Error logging snack:", error);
-    toast.error("Failed to log snack. Please try again.");
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-
-  const simulateBarcodeScanning = () => {
-    // Simulate scanning by randomly selecting a barcode from sample data
-    const barcodes = ["123456789", "234567890", "345678901", "456789012", "567890123"];
-    const randomBarcode = barcodes[Math.floor(Math.random() * barcodes.length)];
-    handleBarcodeInput(randomBarcode);
+    await captureAndIdentifySnack();
   };
 
   if (loading) {
@@ -124,127 +197,146 @@ const SignOut = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
-      <main className="container mx-auto px-4 py-8 max-w-2xl">
-        <Card className="shadow-lg border-2">
-          <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-3xl font-bold">Scan Your Snack</CardTitle>
-            <CardDescription className="text-base">
-              Use the barcode scanner to log your snack
+      <div className="container mx-auto px-4 py-16">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Card className="w-full max-w-md mx-auto shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Scan className="h-6 w-6" />
+              Sign Out a Snack
+            </CardTitle>
+            <CardDescription>
+              Scan barcode or use AI to identify your snack
             </CardDescription>
           </CardHeader>
-
-          <CardContent className="space-y-6">
-            {lunchRestricted && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{getLunchTimeMessage()}</AlertDescription>
+          <CardContent className="space-y-4">
+            {lunchRestrictionMessage && (
+              <Alert>
+                <AlertDescription>{lunchRestrictionMessage}</AlertDescription>
               </Alert>
             )}
 
-            {!lunchRestricted && (
-              <>
-                {!showScanner && !detectedSnack && (
+            <AnimatePresence mode="wait">
+              {!detectedSnack ? (
+                <motion.div
+                  key="scan-options"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="space-y-3"
+                >
                   <Button
-                    variant="default"
-                    size="xl"
-                    onClick={() => setShowScanner(true)}
-                    className="w-full h-32 text-xl"
+                    onClick={handleScanClick}
+                    className="w-full"
+                    size="lg"
                   >
-                    <Scan className="w-12 h-12 mr-4" />
-                    Start Barcode Scanner
+                    <Camera className="mr-2 h-5 w-5" />
+                    Scan Barcode
                   </Button>
-                )}
 
-                {showScanner && !detectedSnack && (
-                  <Card className="bg-muted border-2 border-dashed">
-                    <CardContent className="pt-6 text-center space-y-4">
-                      <Scan className="w-20 h-20 mx-auto text-primary animate-pulse" />
-                      <p className="text-lg font-medium">
-                        Position barcode in camera view
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Camera functionality coming soon. For now, use simulation:
-                      </p>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="lg"
-                          onClick={simulateBarcodeScanning}
-                          className="flex-1"
-                        >
-                          Simulate Scan
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="lg"
-                          onClick={() => setShowScanner(false)}
-                        >
-                          Cancel
-                        </Button>
+                  <Button
+                    onClick={handleAIIdentify}
+                    variant="outline"
+                    className="w-full"
+                    size="lg"
+                    disabled={isIdentifying}
+                  >
+                    {isIdentifying ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Identifying...
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="mr-2 h-5 w-5" />
+                        Use AI Camera
+                      </>
+                    )}
+                  </Button>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="snack-detected"
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  className="space-y-4"
+                >
+                  <div className="p-6 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg border-2 border-primary/20">
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 200, damping: 10 }}
+                      className="flex items-center gap-3 mb-3"
+                    >
+                      <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
+                        <Check className="h-6 w-6 text-primary-foreground" />
                       </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {detectedSnack && (
-                  <div className="space-y-4">
-                    <Card className="bg-primary/5 border-2 border-primary">
-                      <CardContent className="pt-6 text-center space-y-4">
-                        <CheckCircle className="w-16 h-16 mx-auto text-primary" />
-                        <div>
-                          <p className="text-sm text-muted-foreground mb-2">Detected Snack:</p>
-                          <p className="text-2xl font-bold text-primary">
-                            {detectedSnack.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-2">
-                            Barcode: {scannedBarcode}
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <div className="flex gap-4">
-                      <Button
-                        variant="outline"
-                        size="xl"
-                        onClick={() => {
-                          setDetectedSnack(null);
-                          setScannedBarcode("");
-                          setShowScanner(false);
-                        }}
-                        className="flex-1"
-                        disabled={isSubmitting}
-                      >
-                        Cancel
-                      </Button>
-
-                      <Button
-                        variant="success"
-                        size="xl"
-                        onClick={handleSubmit}
-                        className="flex-1"
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? "Logging..." : "Confirm & Log"}
-                      </Button>
-                    </div>
+                      <span className="font-semibold text-lg">Snack Detected!</span>
+                    </motion.div>
+                    <p className="text-2xl font-bold">{detectedSnack.name}</p>
                   </div>
-                )}
-              </>
-            )}
+
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={isSubmitting}
+                      className="flex-1"
+                      size="lg"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Logging...
+                        </>
+                      ) : (
+                        "Confirm & Log"
+                      )}
+                    </Button>
+                    <Button
+                      onClick={() => setDetectedSnack(null)}
+                      variant="outline"
+                      disabled={isSubmitting}
+                      size="lg"
+                    >
+                      Rescan
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <Button
-              variant="ghost"
-              size="lg"
               onClick={() => navigate("/")}
-              className="w-full"
+              variant="ghost"
+              className="w-full mt-4"
             >
+              <Home className="mr-2 h-4 w-4" />
               Back to Home
             </Button>
           </CardContent>
         </Card>
-      </main>
+      </motion.div>
+
+      <AnimatePresence>
+        {showScanner && (
+          <BarcodeScanner
+            onDetected={handleBarcodeDetected}
+            onClose={() => setShowScanner(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Hidden video and canvas for AI identification */}
+      <div className="hidden">
+        <video ref={videoRef} autoPlay playsInline />
+        <canvas ref={canvasRef} />
+      </div>
+      </div>
     </div>
   );
 };
