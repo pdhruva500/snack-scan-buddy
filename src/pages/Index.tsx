@@ -51,8 +51,14 @@ const Index = () => {
             transition={{ delay: 0.4, duration: 0.5 }}
             className="mb-6"
           >
+
+            <img
+              src="public/eaglelogo.png"
+              alt="Eastside Eats Eagle Logo"
+              className="w-24 h-24 mb-4"
+            />
             <h1 className="text-6xl md:text-7xl font-bold mb-4 bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
-              SnackTrack
+              Eastside Eats 
             </h1>
             <p className="text-xl md:text-2xl mb-2 font-light">
               Track your snacks in seconds
