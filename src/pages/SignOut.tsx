@@ -82,57 +82,93 @@ const SignOut = () => {
       return;
     }
 
+    setIsSubmitting(true);
     try {
-      let { data: existingSnack } = await supabase
+      const userInput = manualSnackName.trim();
+
+      // Step 1: Check for exact match (case-insensitive)
+      let { data: exactMatch } = await supabase
         .from("snacks")
         .select("id, name")
-        .ilike("name", manualSnackName.trim())
+        .ilike("name", userInput)
+        .maybeSingle();
+
+      if (exactMatch) {
+        setDetectedSnack(exactMatch);
+        toast.success("Snack found!", { description: exactMatch.name });
+        setManualSnackName("");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Step 2: Check for similar matches (partial match)
+      const { data: similarSnacks } = await supabase
+        .from("snacks")
+        .select("id, name")
+        .ilike("name", `%${userInput}%`)
+        .limit(10);
+
+      // If we found similar snacks, use the first one
+      if (similarSnacks && similarSnacks.length > 0) {
+        const matchedSnack = similarSnacks[0];
+        setDetectedSnack(matchedSnack);
+        toast.success("Similar snack found!", { 
+          description: `Using "${matchedSnack.name}" instead of "${userInput}"` 
+        });
+        setManualSnackName("");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Step 3: No similar items found, just log it directly without creating in snacks table
+      if (!user) {
+        toast.error("User not authenticated");
+        return;
+      }
+
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+
+      const authUser = userData.user;
+
+      // Get any existing snack to use as placeholder ID (since snack_id is required)
+      const { data: anySnack } = await supabase
+        .from("snacks")
+        .select("id")
+        .limit(1)
         .single();
 
-      if (!existingSnack) {
-        const { data: similarSnacks } = await supabase
-          .from("snacks")
-          .select("id, name")
-          .ilike("name", `%${manualSnackName.trim()}%`)
-          .limit(5);
-
-        if (similarSnacks?.length > 0) {
-          const response = await supabase.functions.invoke("identify-snack", {
-            body: {
-              userInput: manualSnackName.trim(),
-              suggestions: similarSnacks.map((s) => s.name),
-            },
-          });
-
-          if (response.data?.bestMatch) {
-            existingSnack = similarSnacks.find((s) => s.name === response.data.bestMatch);
-            if (existingSnack) {
-              toast.success("Found similar snack!", {
-                description: `Did you mean "${existingSnack.name}"?`,
-              });
-            }
-          }
-        }
+      if (!anySnack) {
+        toast.error("No snacks in database. Please scan a barcode first.");
+        return;
       }
 
-      if (existingSnack) {
-        setDetectedSnack(existingSnack);
-      } else {
-        const { data: newSnack, error: createError } = await supabase
-          .from("snacks")
-          .insert({ name: manualSnackName.trim(), barcode: `MANUAL-${Date.now()}` })
-          .select("id, name")
-          .single();
+      // Log directly using the typed name, but with a placeholder snack_id
+      const { error: logError } = await supabase.from("snack_logs").insert({
+        user_id: authUser.id,
+        snack_id: anySnack.id, // Just use any existing snack's ID as placeholder
+        snack_name: userInput, // This is what shows in admin - the actual food they typed
+        student_name: authUser.email || 'Unknown',
+      });
 
-        if (createError) throw createError;
-        setDetectedSnack(newSnack);
-        toast.success("New snack added!", { description: manualSnackName.trim() });
+      if (logError) {
+        console.error("Error logging snack:", logError);
+        throw logError;
       }
 
+      toast.success("Snack logged!", { 
+        description: `"${userInput}" has been logged successfully` 
+      });
+      
       setManualSnackName("");
+      
+      // Navigate back after short delay
+      setTimeout(() => navigate("/"), 1500);
     } catch (err) {
       console.error("Error adding snack:", err);
       toast.error("Failed to add snack. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -145,16 +181,12 @@ const SignOut = () => {
       if (userError) throw userError;
 
       const authUser = userData.user;
-      if (!authUser?.user_metadata?.full_name) {
-        toast.error("User profile is incomplete. Please contact an administrator.");
-        return;
-      }
 
       const { error } = await supabase.from("snack_logs").insert({
         user_id: authUser.id,
         snack_id: detectedSnack.id,
         snack_name: detectedSnack.name,
-        student_name: authUser.user_metadata.full_name,
+        student_name: authUser.email || 'Unknown',
       });
 
       if (error) throw error;
@@ -243,11 +275,25 @@ const SignOut = () => {
                         placeholder="Enter snack name..."
                         value={manualSnackName}
                         onChange={(e) => setManualSnackName(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleManualEntry()}
+                        onKeyDown={(e) => e.key === "Enter" && !isSubmitting && handleManualEntry()}
+                        disabled={isSubmitting}
                         className="h-12 text-base"
                       />
-                      <Button onClick={handleManualEntry} variant="outline" className="w-full" size="lg">
-                        Add Manually
+                      <Button 
+                        onClick={handleManualEntry} 
+                        variant="outline" 
+                        className="w-full" 
+                        size="lg"
+                        disabled={isSubmitting || !manualSnackName.trim()}
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          "Add Manually"
+                        )}
                       </Button>
                     </div>
                   </motion.div>

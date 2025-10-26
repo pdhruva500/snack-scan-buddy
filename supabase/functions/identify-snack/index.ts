@@ -11,14 +11,46 @@ serve(async (req) => {
   }
 
   try {
-    const { imageData, userInput, suggestions } = await req.json();
+    const { imageData, userInput, suggestions, validateOnly } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    // Handle spelling correction/fuzzy matching
+    // Handle AI validation/correction of user input (NEW)
+    if (userInput && validateOnly) {
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a helpful assistant that validates and corrects food/snack names. Return only the corrected, properly capitalized food name. Fix any spelling mistakes and use common snack naming conventions. For example: "doritos" → "Doritos", "popcorn" → "Popcorn", "choclate chip cookies" → "Chocolate Chip Cookies".'
+            },
+            {
+              role: 'user',
+              content: `User entered: "${userInput}"\n\nProvide the correct, properly formatted name for this food/snack. Return ONLY the corrected name, nothing else.`
+            }
+          ],
+        }),
+      });
+
+      const data = await response.json();
+      const validatedName = data.choices?.[0]?.message?.content?.trim();
+
+      return new Response(
+        JSON.stringify({ validatedName: validatedName || userInput }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Handle spelling correction/fuzzy matching from existing list
     if (userInput && suggestions) {
       const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
