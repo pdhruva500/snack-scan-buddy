@@ -1,10 +1,11 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Home, Camera, Check, Scan } from "lucide-react";
 import { toast } from "sonner";
@@ -19,9 +20,7 @@ const SignOut = () => {
   const [showScanner, setShowScanner] = useState(false);
   const [detectedSnack, setDetectedSnack] = useState<{ id: string; name: string } | null>(null);
   const [lunchRestrictionMessage, setLunchRestrictionMessage] = useState<string | null>(null);
-  const [isIdentifying, setIsIdentifying] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [manualSnackName, setManualSnackName] = useState("");
 
   useEffect(() => {
     if (!loading && !user) {
@@ -59,9 +58,8 @@ const SignOut = () => {
 
       if (error || !data) {
         toast.error("Barcode not found", {
-          description: "Using AI to identify snack..."
+          description: "Please enter manually or try a different barcode."
         });
-        await captureAndIdentifySnack();
         return;
       }
 
@@ -75,36 +73,18 @@ const SignOut = () => {
     }
   };
 
-  const captureAndIdentifySnack = async () => {
-    if (!videoRef.current || !canvasRef.current) return;
-
-    setIsIdentifying(true);
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-
-    if (!context) return;
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    context.drawImage(video, 0, 0);
-
-    const imageData = canvas.toDataURL('image/jpeg', 0.8);
+  const handleManualEntry = async () => {
+    if (!manualSnackName.trim()) {
+      toast.error("Please enter a snack name");
+      return;
+    }
 
     try {
-      const { data, error } = await supabase.functions.invoke('identify-snack', {
-        body: { imageData }
-      });
-
-      if (error) throw error;
-
-      const snackName = data.snackName;
-      
-      // Try to find or create snack in database
+      // Try to find existing snack
       const { data: existingSnack } = await supabase
         .from("snacks")
         .select("id, name")
-        .eq("name", snackName)
+        .ilike("name", manualSnackName.trim())
         .single();
 
       if (existingSnack) {
@@ -113,7 +93,7 @@ const SignOut = () => {
         // Create new snack entry
         const { data: newSnack, error: createError } = await supabase
           .from("snacks")
-          .insert({ name: snackName, barcode: `AI-${Date.now()}` })
+          .insert({ name: manualSnackName.trim(), barcode: `MANUAL-${Date.now()}` })
           .select("id, name")
           .single();
 
@@ -121,14 +101,13 @@ const SignOut = () => {
         setDetectedSnack(newSnack);
       }
 
-      toast.success("Snack identified!", {
-        description: snackName,
+      toast.success("Snack added!", {
+        description: manualSnackName.trim(),
       });
+      setManualSnackName("");
     } catch (err) {
-      console.error("Error identifying snack:", err);
-      toast.error("Failed to identify snack. Please try again.");
-    } finally {
-      setIsIdentifying(false);
+      console.error("Error adding snack:", err);
+      toast.error("Failed to add snack. Please try again.");
     }
   };
 
@@ -179,11 +158,6 @@ const SignOut = () => {
     setDetectedSnack(null);
   };
 
-  const handleAIIdentify = async () => {
-    setShowScanner(false);
-    await captureAndIdentifySnack();
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -197,7 +171,7 @@ const SignOut = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="container mx-auto px-4 py-16">
+      <div className="container mx-auto px-4 py-8 md:py-16">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -205,12 +179,12 @@ const SignOut = () => {
       >
         <Card className="w-full max-w-md mx-auto shadow-lg">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Scan className="h-6 w-6" />
+            <CardTitle className="flex items-center gap-3 text-xl md:text-2xl">
+              <img src="/eaglelogo.png" alt="Eagle Logo" className="h-8 w-8 md:h-10 md:w-10" />
               Sign Out a Snack
             </CardTitle>
-            <CardDescription>
-              Scan barcode or use AI to identify your snack
+            <CardDescription className="text-sm md:text-base">
+              Scan barcode or enter snack name manually
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -227,7 +201,7 @@ const SignOut = () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="space-y-3"
+                  className="space-y-4"
                 >
                   <Button
                     onClick={handleScanClick}
@@ -238,25 +212,34 @@ const SignOut = () => {
                     Scan Barcode
                   </Button>
 
-                  <Button
-                    onClick={handleAIIdentify}
-                    variant="outline"
-                    className="w-full"
-                    size="lg"
-                    disabled={isIdentifying}
-                  >
-                    {isIdentifying ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Identifying...
-                      </>
-                    ) : (
-                      <>
-                        <Camera className="mr-2 h-5 w-5" />
-                        Use AI Camera
-                      </>
-                    )}
-                  </Button>
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">
+                        Or enter manually
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="Enter snack name..."
+                      value={manualSnackName}
+                      onChange={(e) => setManualSnackName(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleManualEntry()}
+                      className="h-12 text-base"
+                    />
+                    <Button
+                      onClick={handleManualEntry}
+                      variant="outline"
+                      className="w-full"
+                      size="lg"
+                    >
+                      Add Manually
+                    </Button>
+                  </div>
                 </motion.div>
               ) : (
                 <motion.div
@@ -266,19 +249,19 @@ const SignOut = () => {
                   exit={{ scale: 0.9, opacity: 0 }}
                   className="space-y-4"
                 >
-                  <div className="p-6 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg border-2 border-primary/20">
+                  <div className="p-4 md:p-6 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg border-2 border-primary/20">
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ type: "spring", stiffness: 200, damping: 10 }}
                       className="flex items-center gap-3 mb-3"
                     >
-                      <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
-                        <Check className="h-6 w-6 text-primary-foreground" />
+                      <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-primary flex items-center justify-center">
+                        <Check className="h-5 w-5 md:h-6 md:w-6 text-primary-foreground" />
                       </div>
-                      <span className="font-semibold text-lg">Snack Detected!</span>
+                      <span className="font-semibold text-base md:text-lg">Snack Detected!</span>
                     </motion.div>
-                    <p className="text-2xl font-bold">{detectedSnack.name}</p>
+                    <p className="text-xl md:text-2xl font-bold break-words">{detectedSnack.name}</p>
                   </div>
 
                   <div className="flex gap-2">
@@ -331,11 +314,6 @@ const SignOut = () => {
         )}
       </AnimatePresence>
 
-      {/* Hidden video and canvas for AI identification */}
-      <div className="hidden">
-        <video ref={videoRef} autoPlay playsInline />
-        <canvas ref={canvasRef} />
-      </div>
       </div>
     </div>
   );

@@ -3,13 +3,11 @@ import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Download, RefreshCw, Lock, Loader2, Search, LogOut } from "lucide-react";
-import CryptoJS from "crypto-js";
+import { Download, RefreshCw, Loader2, Search, LogOut, TrendingUp, Users, Package } from "lucide-react";
 import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -25,9 +23,6 @@ const Admin = () => {
   const [logs, setLogs] = useState<SnackLog[]>([]);
   const [filteredLogs, setFilteredLogs] = useState<SnackLog[]>([]);
   const [loading, setLoading] = useState(false);
-  const [authenticated, setAuthenticated] = useState(false);
-  const [pin, setPin] = useState("");
-  const [verifying, setVerifying] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [chartData, setChartData] = useState<Array<{ date: string; count: number }>>([]);
 
@@ -68,30 +63,28 @@ const Admin = () => {
   };
 
   useEffect(() => {
-    if (authenticated) {
-      loadLogs();
+    loadLogs();
 
-      // Set up real-time subscription
-      const channel = supabase
-        .channel('snack-logs-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'snack_logs'
-          },
-          () => {
-            loadLogs();
-          }
-        )
-        .subscribe();
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('snack-logs-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'snack_logs'
+        },
+        () => {
+          loadLogs();
+        }
+      )
+      .subscribe();
 
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [authenticated]);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   useEffect(() => {
     if (searchTerm.trim() === "") {
@@ -106,38 +99,6 @@ const Admin = () => {
   }, [searchTerm, logs]);
 
 
-  const verifyPin = async () => {
-    if (!pin) {
-      toast.error("Please enter a PIN");
-      return;
-    }
-
-    setVerifying(true);
-    try {
-      const pinHash = CryptoJS.SHA256(pin).toString();
-      const { data, error } = await supabase
-        .from("admin_pins")
-        .select("pin_hash")
-        .eq("pin_hash", pinHash)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data) {
-        setAuthenticated(true);
-        toast.success("Access granted");
-        loadLogs();
-      } else {
-        toast.error("Invalid PIN");
-        setPin("");
-      }
-    } catch (error) {
-      console.error("Error verifying PIN:", error);
-      toast.error("Failed to verify PIN");
-    } finally {
-      setVerifying(false);
-    }
-  };
 
   const handleDownloadCSV = () => {
     if (logs.length === 0) {
@@ -181,60 +142,6 @@ const Admin = () => {
     });
   };
 
-  if (!authenticated) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md shadow-lg border-2">
-          <CardHeader className="text-center space-y-2">
-            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-              <Lock className="w-8 h-8 text-primary" />
-            </div>
-            <CardTitle className="text-3xl font-bold">Admin Access</CardTitle>
-            <CardDescription>Enter PIN to view snack logs</CardDescription>
-          </CardHeader>
-
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="pin">PIN Code</Label>
-              <Input
-                id="pin"
-                type="password"
-                placeholder="Enter 4-digit PIN"
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && verifyPin()}
-                maxLength={4}
-                className="h-14 text-lg text-center border-2"
-              />
-              <p className="text-xs text-muted-foreground text-center">
-                Default PIN: 1234
-              </p>
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="xl"
-                onClick={() => navigate("/")}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="success"
-                size="xl"
-                onClick={verifyPin}
-                disabled={verifying}
-                className="flex-1"
-              >
-                {verifying ? <Loader2 className="w-4 h-4 animate-spin" /> : "Verify"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -243,49 +150,99 @@ const Admin = () => {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between"
+          className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
         >
           <div>
-            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-            <p className="text-muted-foreground">Real-time snack tracking and analytics</p>
+            <h1 className="text-3xl md:text-4xl font-bold">Admin Dashboard</h1>
+            <p className="text-muted-foreground text-sm md:text-base">Real-time snack tracking and analytics</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button onClick={loadLogs} variant="outline" size="sm">
               <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
+              <span className="hidden sm:inline">Refresh</span>
             </Button>
             <Button onClick={handleDownloadCSV} variant="outline" size="sm">
               <Download className="h-4 w-4 mr-2" />
-              Export CSV
+              <span className="hidden sm:inline">Export</span>
             </Button>
-            <Button onClick={() => {
-              setAuthenticated(false);
-              navigate("/");
-            }} variant="ghost" size="sm">
+            <Button onClick={() => navigate("/")} variant="ghost" size="sm">
               <LogOut className="h-4 w-4 mr-2" />
-              Exit
+              <span className="hidden sm:inline">Exit</span>
             </Button>
           </div>
+        </motion.div>
+
+        {/* Stats Cards */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.1 }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+        >
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Logs</CardTitle>
+              <Package className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{logs.length}</div>
+              <p className="text-xs text-muted-foreground">All time</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Unique Students</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {new Set(logs.map(log => log.student_name)).size}
+              </div>
+              <p className="text-xs text-muted-foreground">Active users</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Today's Logs</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {logs.filter(log => {
+                  const today = new Date().toDateString();
+                  const logDate = new Date(log.timestamp).toDateString();
+                  return today === logDate;
+                }).length}
+              </div>
+              <p className="text-xs text-muted-foreground">Logged today</p>
+            </CardContent>
+          </Card>
         </motion.div>
 
         {chartData.length > 0 && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1 }}
+            transition={{ delay: 0.2 }}
           >
             <Card>
               <CardHeader>
-                <CardTitle>Snacks Logged (Last 7 Days)</CardTitle>
+                <CardTitle className="text-lg md:text-xl">Snacks Logged (Last 7 Days)</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={200}>
+                <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 12 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                    />
+                    <YAxis tick={{ fontSize: 12 }} />
                     <Tooltip />
-                    <Bar dataKey="count" fill="hsl(var(--primary))" />
+                    <Bar dataKey="count" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -296,16 +253,16 @@ const Admin = () => {
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.3 }}
         >
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
-                  <CardTitle>All Snack Logs</CardTitle>
-                  <CardDescription>Total logs: {logs.length}</CardDescription>
+                  <CardTitle className="text-lg md:text-xl">All Snack Logs</CardTitle>
+                  <CardDescription className="text-sm">Total logs: {logs.length}</CardDescription>
                 </div>
-                <div className="relative w-64">
+                <div className="relative w-full md:w-64">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search student or snack..."

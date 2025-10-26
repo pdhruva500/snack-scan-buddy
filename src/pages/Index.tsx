@@ -114,16 +114,6 @@ const Index = () => {
               Scan a Snack
             </Button>
 
-            <Button 
-              size="lg" 
-              variant="outline"
-              className="bg-white/10 text-white border-white hover:bg-white/20 hover:scale-105 transition-transform backdrop-blur-sm"
-              onClick={() => handleBarcodeDetected('3017620422003')}
-            >
-              <Camera className="mr-2 h-5 w-5" />
-              Test with Nutella
-            </Button>
-
             <Link to="/dashboard">
               <Button size="lg" variant="outline"className="bg-white/10 text-white border-white hover:bg-white/20 hover:scale-105 transition-transform backdrop-blur-sm">
               <BarChart3 className="mr-2 h-5 w-5" />
