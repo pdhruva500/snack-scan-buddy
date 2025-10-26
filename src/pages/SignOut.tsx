@@ -23,24 +23,25 @@ const SignOut = () => {
   const [lunchRestrictionMessage, setLunchRestrictionMessage] = useState<string | null>(null);
   const [manualSnackName, setManualSnackName] = useState("");
 
-  // Redirect if not logged in
+  // Navigate if not logged in
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
 
-  // Update lunch restriction message
+  // Update lunch restriction message every minute
   useEffect(() => {
     const updateLunchStatus = () => {
       setLunchRestrictionMessage(isLunchTime() ? getLunchTimeMessage() : null);
     };
+
     updateLunchStatus();
     const interval = setInterval(updateLunchStatus, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // Cleanup camera stream when leaving scanner or page
+  // Ensure camera turns off when scanner closes or user leaves page
   useEffect(() => {
     return () => {
       const videoEl = document.querySelector("video");
@@ -75,39 +76,57 @@ const SignOut = () => {
     }
   };
 
-  // UPDATED — no dependency on admin snacks
   const handleManualEntry = async () => {
     if (!manualSnackName.trim()) {
       toast.error("Please enter a snack name");
       return;
     }
 
-    const snackName = manualSnackName.trim();
     try {
-      // First, see if it already exists (not required anymore, just a check)
-      const { data: existingSnack } = await supabase
+      let { data: existingSnack } = await supabase
         .from("snacks")
         .select("id, name")
-        .ilike("name", snackName)
-        .maybeSingle();
+        .ilike("name", manualSnackName.trim())
+        .single();
+
+      if (!existingSnack) {
+        const { data: similarSnacks } = await supabase
+          .from("snacks")
+          .select("id, name")
+          .ilike("name", `%${manualSnackName.trim()}%`)
+          .limit(5);
+
+        if (similarSnacks?.length > 0) {
+          const response = await supabase.functions.invoke("identify-snack", {
+            body: {
+              userInput: manualSnackName.trim(),
+              suggestions: similarSnacks.map((s) => s.name),
+            },
+          });
+
+          if (response.data?.bestMatch) {
+            existingSnack = similarSnacks.find((s) => s.name === response.data.bestMatch);
+            if (existingSnack) {
+              toast.success("Found similar snack!", {
+                description: `Did you mean "${existingSnack.name}"?`,
+              });
+            }
+          }
+        }
+      }
 
       if (existingSnack) {
         setDetectedSnack(existingSnack);
-        toast.success("Existing snack found!", { description: existingSnack.name });
       } else {
-        // ✅ Always create a new snack if not found
         const { data: newSnack, error: createError } = await supabase
           .from("snacks")
-          .insert({
-            name: snackName,
-            barcode: `MANUAL-${Date.now()}`,
-          })
+          .insert({ name: manualSnackName.trim(), barcode: `MANUAL-${Date.now()}` })
           .select("id, name")
           .single();
 
         if (createError) throw createError;
         setDetectedSnack(newSnack);
-        toast.success("New snack added!", { description: snackName });
+        toast.success("New snack added!", { description: manualSnackName.trim() });
       }
 
       setManualSnackName("");
@@ -292,6 +311,7 @@ const SignOut = () => {
             <BarcodeScanner
               onDetected={handleBarcodeDetected}
               onClose={() => {
+                // Stop camera stream when scanner closes
                 const videoEl = document.querySelector("video");
                 if (videoEl && videoEl.srcObject) {
                   const stream = videoEl.srcObject as MediaStream;
