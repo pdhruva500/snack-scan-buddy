@@ -79,11 +79,11 @@ const Index = () => {
 
             <div className="flex items-center justify-center gap-3 mb-4">
               <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
-                SnackLogger
+                Eastside Eats 
               </h1>
               <img
                 src="/eaglelogo.png"
-                alt="SnackLogger Eagle Logo"
+                alt="Eastside Eats Eagle Logo"
                 className="w-16 h-16 md:w-20 md:h-20"
               />
             </div>
