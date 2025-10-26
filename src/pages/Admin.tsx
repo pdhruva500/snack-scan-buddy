@@ -25,6 +25,7 @@ const Admin = () => {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [chartData, setChartData] = useState<Array<{ date: string; count: number }>>([]);
+  const [selectedLog, setSelectedLog] = useState<SnackLog | null>(null);
 
   const loadLogs = async () => {
     setLoading(true);
@@ -98,6 +99,32 @@ const Admin = () => {
     }
   }, [searchTerm, logs]);
 
+  const topSnacks = logs.reduce((acc, log) => {
+    acc[log.snack_name] = (acc[log.snack_name] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  
+  const topSnacksArray = Object.entries(topSnacks)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5)
+    .map(([name, count]) => ({ name, count }));
+
+  const handleDeleteLog = async (logId: string) => {
+    try {
+      const { error } = await supabase
+        .from("snack_logs")
+        .delete()
+        .eq("id", logId);
+
+      if (error) throw error;
+
+      toast.success("Log deleted successfully");
+      setSelectedLog(null);
+    } catch (error) {
+      console.error("Error deleting log:", error);
+      toast.error("Failed to delete log");
+    }
+  };
 
 
   const handleDownloadCSV = () => {
@@ -219,36 +246,67 @@ const Admin = () => {
           </Card>
         </motion.div>
 
-        {chartData.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {chartData.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg md:text-xl">Snacks Logged (Last 7 Days)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="date" 
+                        tick={{ fontSize: 12 }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={80}
+                      />
+                      <YAxis tick={{ fontSize: 12 }} />
+                      <Tooltip />
+                      <Bar dataKey="count" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 0.25 }}
           >
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg md:text-xl">Snacks Logged (Last 7 Days)</CardTitle>
+                <CardTitle className="text-lg md:text-xl">Top 5 Snacks</CardTitle>
+                <CardDescription>Most popular snacks</CardDescription>
               </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                      dataKey="date" 
-                      tick={{ fontSize: 12 }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={80}
-                    />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+              <CardContent className="space-y-3">
+                {topSnacksArray.map((snack, index) => (
+                  <div key={snack.name} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold">
+                        {index + 1}
+                      </div>
+                      <span className="text-sm md:text-base font-medium">{snack.name}</span>
+                    </div>
+                    <span className="text-sm md:text-base font-semibold text-primary">{snack.count}x</span>
+                  </div>
+                ))}
+                {topSnacksArray.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">No snacks logged yet</p>
+                )}
               </CardContent>
             </Card>
           </motion.div>
-        )}
+        </div>
 
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
@@ -294,7 +352,11 @@ const Admin = () => {
                     </TableHeader>
                     <TableBody>
                       {filteredLogs.map((log) => (
-                        <TableRow key={log.id}>
+                        <TableRow 
+                          key={log.id}
+                          className="cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => setSelectedLog(log)}
+                        >
                           <TableCell className="font-medium">{log.student_name}</TableCell>
                           <TableCell>{log.snack_name}</TableCell>
                           <TableCell className="text-muted-foreground">{formatDate(log.timestamp)}</TableCell>
@@ -308,6 +370,62 @@ const Admin = () => {
           </Card>
         </motion.div>
       </div>
+
+      {selectedLog && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
+          onClick={() => setSelectedLog(null)}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Card className="w-full max-w-md shadow-2xl">
+              <CardHeader>
+                <CardTitle className="text-xl">Log Details</CardTitle>
+                <CardDescription>View and manage this snack log</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="p-3 rounded-lg bg-muted/50">
+                    <p className="text-xs text-muted-foreground mb-1">Student Name</p>
+                    <p className="font-semibold text-lg">{selectedLog.student_name}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/50">
+                    <p className="text-xs text-muted-foreground mb-1">Snack Name</p>
+                    <p className="font-semibold text-lg">{selectedLog.snack_name}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/50">
+                    <p className="text-xs text-muted-foreground mb-1">Timestamp</p>
+                    <p className="font-semibold">{new Date(selectedLog.timestamp).toLocaleString()}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleDeleteLog(selectedLog.id)}
+                    className="flex-1"
+                  >
+                    Delete Log
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedLog(null)}
+                    className="flex-1"
+                  >
+                    Close
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   );
 };

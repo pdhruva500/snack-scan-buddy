@@ -79,22 +79,23 @@ const Index = () => {
 
             <div className="flex items-center justify-center gap-3 mb-4">
               <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
-                Eastside Eats
+                SnackLogger
               </h1>
               <img
                 src="/eaglelogo.png"
-                alt="Eastside Eats Eagle Logo"
+                alt="SnackLogger Eagle Logo"
                 className="w-16 h-16 md:w-20 md:h-20"
               />
             </div>
 
-
-
             <p className="text-xl md:text-2xl mb-2 font-light">
               Track your snacks in seconds
             </p>
-            <p className="text-sm md:text-base text-white/80 max-w-2xl mx-auto">
-              Scan barcodes or use AI-powered camera recognition
+            <p className="text-sm md:text-base text-white/80 max-w-2xl mx-auto mb-2">
+              Scan barcodes or enter manually
+            </p>
+            <p className="text-xs md:text-sm text-white/60">
+              Created by Prasham Dhruva
             </p>
           </motion.div>
           
@@ -269,9 +270,6 @@ const Index = () => {
           </Card>
         </motion.div>
       </div>
-      <footer className="fixed bottom-4 lefto-0 w-full text-center text-white/80 text-sm z-50">
-      Created by Prasham Dhruva
-      </footer>
     </div>
 
   );

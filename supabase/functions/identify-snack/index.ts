@@ -11,11 +11,50 @@ serve(async (req) => {
   }
 
   try {
-    const { imageData } = await req.json();
+    const { imageData, userInput, suggestions } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
+    }
+
+    // Handle spelling correction/fuzzy matching
+    if (userInput && suggestions) {
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a helpful assistant that finds the best matching snack name from a list. Return only the exact matched name or "none" if no good match.'
+            },
+            {
+              role: 'user',
+              content: `User typed: "${userInput}"\n\nAvailable snacks: ${suggestions.join(', ')}\n\nWhich snack did they most likely mean? Return only the exact name from the list, or "none" if no match is close enough.`
+            }
+          ],
+        }),
+      });
+
+      const data = await response.json();
+      const bestMatch = data.choices?.[0]?.message?.content?.trim();
+
+      return new Response(
+        JSON.stringify({ bestMatch: bestMatch !== 'none' ? bestMatch : null }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    if (!imageData) {
+      return new Response(
+        JSON.stringify({ error: 'No data provided' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {

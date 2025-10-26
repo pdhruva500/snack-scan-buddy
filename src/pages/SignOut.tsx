@@ -80,12 +80,40 @@ const SignOut = () => {
     }
 
     try {
-      // Try to find existing snack
-      const { data: existingSnack } = await supabase
+      // First try exact match
+      let { data: existingSnack } = await supabase
         .from("snacks")
         .select("id, name")
         .ilike("name", manualSnackName.trim())
         .single();
+
+      // If no exact match, try fuzzy search for similar names
+      if (!existingSnack) {
+        const { data: similarSnacks } = await supabase
+          .from("snacks")
+          .select("id, name")
+          .ilike("name", `%${manualSnackName.trim()}%`)
+          .limit(5);
+
+        if (similarSnacks && similarSnacks.length > 0) {
+          // Use AI to find best match
+          const response = await supabase.functions.invoke("identify-snack", {
+            body: { 
+              userInput: manualSnackName.trim(),
+              suggestions: similarSnacks.map(s => s.name)
+            }
+          });
+
+          if (response.data?.bestMatch) {
+            existingSnack = similarSnacks.find(s => s.name === response.data.bestMatch);
+            if (existingSnack) {
+              toast.success("Found similar snack!", {
+                description: `Did you mean "${existingSnack.name}"?`
+              });
+            }
+          }
+        }
+      }
 
       if (existingSnack) {
         setDetectedSnack(existingSnack);
@@ -99,11 +127,11 @@ const SignOut = () => {
 
         if (createError) throw createError;
         setDetectedSnack(newSnack);
+        toast.success("New snack added!", {
+          description: manualSnackName.trim(),
+        });
       }
 
-      toast.success("Snack added!", {
-        description: manualSnackName.trim(),
-      });
       setManualSnackName("");
     } catch (err) {
       console.error("Error adding snack:", err);
@@ -179,8 +207,7 @@ const SignOut = () => {
       >
         <Card className="w-full max-w-md mx-auto shadow-lg">
           <CardHeader>
-            <CardTitle className="flex items-center gap-3 text-xl md:text-2xl">
-              <img src="/eaglelogo.png" alt="Eagle Logo" className="h-8 w-8 md:h-10 md:w-10" />
+            <CardTitle className="text-xl md:text-2xl">
               Sign Out a Snack
             </CardTitle>
             <CardDescription className="text-sm md:text-base">
