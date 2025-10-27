@@ -1,10 +1,5 @@
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { Check, Loader2 } from "lucide-react";
 
 interface FoodItemDisplayProps {
   product: {
@@ -19,70 +14,9 @@ interface FoodItemDisplayProps {
     };
     ingredients_text?: string;
   };
-  onLogSuccess?: () => void;
 }
 
-export const FoodItemDisplay = ({ product, onLogSuccess }: FoodItemDisplayProps) => {
-  const [isLogging, setIsLogging] = useState(false);
-  const [isLogged, setIsLogged] = useState(false);
-
-  const handleLogSnack = async () => {
-    setIsLogging(true);
-    try {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-
-      const authUser = userData.user;
-      if (!authUser) {
-        toast.error("You must be signed in to log snacks");
-        return;
-      }
-
-      // Get user's profile for full name
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", authUser.id)
-        .maybeSingle();
-
-      // Get or create a snack entry (placeholder ID approach)
-      const { data: anySnack } = await supabase
-        .from("snacks")
-        .select("id")
-        .limit(1)
-        .maybeSingle();
-
-      if (!anySnack) {
-        toast.error("Database error. Please contact admin.");
-        return;
-      }
-
-      // Log the snack
-      const { error: logError } = await supabase.from("snack_logs").insert({
-        user_id: authUser.id,
-        snack_id: anySnack.id,
-        snack_name: product.product_name,
-        student_name: profile?.full_name || authUser.email || 'Unknown',
-      });
-
-      if (logError) throw logError;
-
-      setIsLogged(true);
-      toast.success("Snack logged successfully!", {
-        description: `${product.product_name} has been added to your log`,
-      });
-
-      if (onLogSuccess) {
-        setTimeout(() => onLogSuccess(), 1500);
-      }
-    } catch (error) {
-      console.error("Error logging snack:", error);
-      toast.error("Failed to log snack. Please try again.");
-    } finally {
-      setIsLogging(false);
-    }
-  };
-
+export const FoodItemDisplay = ({ product }: FoodItemDisplayProps) => {
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
@@ -100,29 +34,6 @@ export const FoodItemDisplay = ({ product, onLogSuccess }: FoodItemDisplayProps)
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <Button 
-          onClick={handleLogSnack} 
-          disabled={isLogging || isLogged}
-          className="w-full"
-          size="lg"
-          variant={isLogged ? "outline" : "default"}
-        >
-          {isLogging ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Logging...
-            </>
-          ) : isLogged ? (
-            <>
-              <Check className="mr-2 h-4 w-4" />
-              Logged Successfully
-            </>
-          ) : (
-            "Log This Snack"
-          )}
-        </Button>
-      </CardContent>
     </Card>
   );
 };
