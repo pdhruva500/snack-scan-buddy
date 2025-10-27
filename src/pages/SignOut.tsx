@@ -60,10 +60,12 @@ const SignOut = () => {
       const productData = await fetchFoodProduct(barcode);
       
       if (productData && productData.product) {
-        // Successfully found product via food API
+        // Successfully found product via food API - store image and brand too
         setDetectedSnack({ 
           id: barcode, // Use barcode as ID since it's not in our database
-          name: productData.product.product_name 
+          name: productData.product.product_name,
+          image: productData.product.image_url,
+          brand: productData.product.brands
         });
         toast.success("Snack detected!", { description: productData.product.product_name });
       } else {
@@ -304,7 +306,23 @@ const SignOut = () => {
                         </div>
                         <span className="font-semibold text-base md:text-lg">Snack Detected!</span>
                       </motion.div>
-                      <p className="text-xl md:text-2xl font-bold break-words">{detectedSnack.name}</p>
+                      
+                      {/* Product image and details */}
+                      <div className="flex items-start gap-4 mt-4">
+                        {detectedSnack.image && (
+                          <img
+                            src={detectedSnack.image}
+                            alt={detectedSnack.name}
+                            className="w-16 h-16 md:w-20 md:h-20 object-cover rounded border-2 border-primary/30"
+                          />
+                        )}
+                        <div className="flex-1">
+                          <p className="text-xl md:text-2xl font-bold break-words">{detectedSnack.name}</p>
+                          {detectedSnack.brand && (
+                            <p className="text-sm text-muted-foreground mt-1">{detectedSnack.brand}</p>
+                          )}
+                        </div>
+                      </div>
                     </div>
 
                     <div className="flex gap-2">
