@@ -120,6 +120,7 @@ const Admin = () => {
 
       toast.success("Log deleted successfully");
       setSelectedLog(null);
+      await loadLogs(); // Reload logs to update the UI
     } catch (error) {
       console.error("Error deleting log:", error);
       toast.error("Failed to delete log");

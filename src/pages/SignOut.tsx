@@ -86,43 +86,9 @@ const SignOut = () => {
     try {
       const userInput = manualSnackName.trim();
 
-      // Step 1: Check for exact match (case-insensitive)
-      let { data: exactMatch } = await supabase
-        .from("snacks")
-        .select("id, name")
-        .ilike("name", userInput)
-        .maybeSingle();
-
-      if (exactMatch) {
-        setDetectedSnack(exactMatch);
-        toast.success("Snack found!", { description: exactMatch.name });
-        setManualSnackName("");
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Step 2: Check for similar matches (partial match)
-      const { data: similarSnacks } = await supabase
-        .from("snacks")
-        .select("id, name")
-        .ilike("name", `%${userInput}%`)
-        .limit(10);
-
-      // If we found similar snacks, use the first one
-      if (similarSnacks && similarSnacks.length > 0) {
-        const matchedSnack = similarSnacks[0];
-        setDetectedSnack(matchedSnack);
-        toast.success("Similar snack found!", { 
-          description: `Using "${matchedSnack.name}" instead of "${userInput}"` 
-        });
-        setManualSnackName("");
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Step 3: No similar items found, just log it directly without creating in snacks table
       if (!user) {
         toast.error("User not authenticated");
+        setIsSubmitting(false);
         return;
       }
 
@@ -131,24 +97,32 @@ const SignOut = () => {
 
       const authUser = userData.user;
 
+      // Get user's profile for full name
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", authUser.id)
+        .maybeSingle();
+
       // Get any existing snack to use as placeholder ID (since snack_id is required)
       const { data: anySnack } = await supabase
         .from("snacks")
         .select("id")
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (!anySnack) {
-        toast.error("No snacks in database. Please scan a barcode first.");
+        toast.error("Database error. Please contact admin.");
+        setIsSubmitting(false);
         return;
       }
 
-      // Log directly using the typed name, but with a placeholder snack_id
+      // Log directly using the typed name, no database checks
       const { error: logError } = await supabase.from("snack_logs").insert({
         user_id: authUser.id,
-        snack_id: anySnack.id, // Just use any existing snack's ID as placeholder
-        snack_name: userInput, // This is what shows in admin - the actual food they typed
-        student_name: authUser.email || 'Unknown',
+        snack_id: anySnack.id,
+        snack_name: userInput,
+        student_name: profile?.full_name || authUser.email || 'Unknown',
       });
 
       if (logError) {
@@ -162,7 +136,6 @@ const SignOut = () => {
       
       setManualSnackName("");
       
-      // Navigate back after short delay
       setTimeout(() => navigate("/"), 1500);
     } catch (err) {
       console.error("Error adding snack:", err);
