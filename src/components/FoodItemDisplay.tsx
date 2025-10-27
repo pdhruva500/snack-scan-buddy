@@ -34,33 +34,6 @@ export const FoodItemDisplay = ({ product }: FoodItemDisplayProps) => {
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <h3 className="font-semibold mb-2">Nutrition per 100g</h3>
-            <ul className="space-y-1">
-              {product.nutriments.energy_100g && (
-                <li>Energy: {product.nutriments.energy_100g} kcal</li>
-              )}
-              {product.nutriments.proteins_100g && (
-                <li>Protein: {product.nutriments.proteins_100g}g</li>
-              )}
-              {product.nutriments.carbohydrates_100g && (
-                <li>Carbs: {product.nutriments.carbohydrates_100g}g</li>
-              )}
-              {product.nutriments.fat_100g && (
-                <li>Fat: {product.nutriments.fat_100g}g</li>
-              )}
-            </ul>
-          </div>
-          {product.ingredients_text && (
-            <div>
-              <h3 className="font-semibold mb-2">Ingredients</h3>
-              <p className="text-sm">{product.ingredients_text}</p>
-            </div>
-          )}
-        </div>
-      </CardContent>
     </Card>
   );
 };
