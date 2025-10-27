@@ -4,6 +4,14 @@
 
 **URL**: https://lovable.dev/projects/19adfb3c-de79-41a5-a018-6de54f6a6737
 
+## 🔒 Security & Privacy
+
+**Important**: This is a private project. Please ensure:
+- The GitHub repository is set to **Private** in repository settings
+- Never commit sensitive credentials (API keys, secrets) to git
+- Use `.env.example` as a template and create your own `.env` file locally
+- Keep your Supabase credentials secure
+
 ## How can I edit this code?
 
 There are several ways of editing your application.
@@ -29,10 +37,14 @@ git clone <YOUR_GIT_URL>
 # Step 2: Navigate to the project directory.
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
+# Step 3: Set up environment variables.
+cp .env.example .env
+# Edit .env and add your actual Supabase credentials
+
+# Step 4: Install the necessary dependencies.
 npm i
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Step 5: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
 
