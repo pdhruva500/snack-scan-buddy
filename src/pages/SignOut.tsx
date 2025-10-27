@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { isLunchTime, getLunchTimeMessage } from "@/lib/timeRestrictions";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { motion, AnimatePresence } from "framer-motion";
+import { fetchFoodProduct } from "@/services/foodService";
 
 const SignOut = () => {
   const navigate = useNavigate();
@@ -55,21 +56,34 @@ const SignOut = () => {
   const handleBarcodeDetected = async (barcode: string) => {
     setShowScanner(false);
     try {
-      const { data, error } = await supabase
-        .from("snacks")
-        .select("id, name")
-        .eq("barcode", barcode)
-        .single();
-
-      if (error || !data) {
-        toast.error("Barcode not found", {
-          description: "Please enter manually or try a different barcode.",
+      // Use the same food API as the main page scanner
+      const productData = await fetchFoodProduct(barcode);
+      
+      if (productData && productData.product) {
+        // Successfully found product via food API
+        setDetectedSnack({ 
+          id: barcode, // Use barcode as ID since it's not in our database
+          name: productData.product.product_name 
         });
-        return;
-      }
+        toast.success("Snack detected!", { description: productData.product.product_name });
+      } else {
+        // Product not found in food API, fallback to database lookup
+        const { data, error } = await supabase
+          .from("snacks")
+          .select("id, name")
+          .eq("barcode", barcode)
+          .maybeSingle();
 
-      setDetectedSnack(data);
-      toast.success("Snack detected!", { description: data.name });
+        if (error || !data) {
+          toast.error("Barcode not recognized", {
+            description: "Please enter manually or try a different barcode.",
+          });
+          return;
+        }
+
+        setDetectedSnack(data);
+        toast.success("Snack detected!", { description: data.name });
+      }
     } catch (err) {
       console.error("Error fetching snack:", err);
       toast.error("An error occurred while looking up the snack.");
