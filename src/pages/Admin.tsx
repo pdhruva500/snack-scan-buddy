@@ -110,19 +110,41 @@ const Admin = () => {
     .map(([name, count]) => ({ name, count }));
 
   const handleDeleteLog = async (logId: string) => {
+    // Optimistic UI: remove the row immediately
+    setSelectedLog(null);
+    const prevLogs = logs;
+    const prevFiltered = filteredLogs;
+    setLogs((prev) => prev.filter((l) => l.id !== logId));
+    setFilteredLogs((prev) => prev.filter((l) => l.id !== logId));
+
     try {
-      const { error } = await supabase
+      // Ask Supabase to return deleted rows to verify it actually deleted
+      const { data: deleted, error } = await supabase
         .from("snack_logs")
         .delete()
-        .eq("id", logId);
+        .eq("id", logId)
+        .select("id");
 
       if (error) throw error;
 
+      if (!deleted || deleted.length === 0) {
+        // Nothing was deleted on the server (policy or already removed). Revert UI and resync.
+        setLogs(prevLogs);
+        setFilteredLogs(prevFiltered);
+        await loadLogs();
+        toast.error("Could not delete log. It may already be removed or you may not have permission.");
+        return;
+      }
+
       toast.success("Log deleted successfully");
-      setSelectedLog(null);
-      await loadLogs(); // Reload logs to update the UI
+
+      // Optionally resync in background; if realtime is configured, this may be redundant
+      loadLogs();
     } catch (error) {
       console.error("Error deleting log:", error);
+      // Revert optimistic change on failure
+      setLogs(prevLogs);
+      setFilteredLogs(prevFiltered);
       toast.error("Failed to delete log");
     }
   };
