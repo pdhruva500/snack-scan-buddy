@@ -105,15 +105,16 @@ const Index = () => {
             transition={{ delay: 0.6, duration: 0.5 }}
             className="flex gap-4 justify-center flex-wrap"
           >
-            <Button 
-              size="lg" 
-              variant="outline"
-              className="bg-white/10 text-white border-white hover:bg-white/20 hover:scale-105 transition-transform backdrop-blur-sm"
-              onClick={() => setShowScanner(true)}
-            >
-              <Scan className="mr-2 h-5 w-5" />
-              Scan a Snack
-            </Button>
+            <Link to="/sign-out">
+              <Button 
+                size="lg" 
+                variant="outline"
+                className="bg-white/10 text-white border-white hover:bg-white/20 hover:scale-105 transition-transform backdrop-blur-sm"
+              >
+                <Scan className="mr-2 h-5 w-5" />
+                Scan a Snack
+              </Button>
+            </Link>
 
             <Link to="/dashboard">
               <Button size="lg" variant="outline"className="bg-white/10 text-white border-white hover:bg-white/20 hover:scale-105 transition-transform backdrop-blur-sm">
