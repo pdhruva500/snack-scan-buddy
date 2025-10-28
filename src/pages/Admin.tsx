@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Download, RefreshCw, Loader2, Search, LogOut, TrendingUp, Users, Package } from "lucide-react";
+import { Download, RefreshCw, Loader2, Search, LogOut, TrendingUp, Users, Package, Trash } from "lucide-react";
 import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -214,6 +214,52 @@ const Admin = () => {
             <Button onClick={handleDownloadCSV} variant="outline" size="sm">
               <Download className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Export</span>
+            </Button>
+            <Button
+              onClick={async () => {
+                const ok = window.confirm(
+                  `Clear all snack logs? This action cannot be undone.`
+                );
+                if (!ok) return;
+
+                // Optimistic UI clear
+                const prevLogs = logs;
+                const prevFiltered = filteredLogs;
+                setLogs([]);
+                setFilteredLogs([]);
+
+                try {
+                  const { data: deleted, error } = await supabase
+                    .from("snack_logs")
+                    .delete()
+                    .select("id");
+
+                  if (error) throw error;
+
+                  if (!deleted || deleted.length === 0) {
+                    // Nothing deleted - revert
+                    setLogs(prevLogs);
+                    setFilteredLogs(prevFiltered);
+                    await loadLogs();
+                    toast.error("Could not clear logs. You may not have permission.");
+                    return;
+                  }
+
+                  toast.success("All logs cleared");
+                  // reload to be sure
+                  loadLogs();
+                } catch (err) {
+                  console.error("Error clearing logs:", err);
+                  setLogs(prevLogs);
+                  setFilteredLogs(prevFiltered);
+                  toast.error("Failed to clear logs");
+                }
+              }}
+              variant="destructive"
+              size="sm"
+            >
+              <Trash className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Clear Logs</span>
             </Button>
             <Button onClick={() => navigate("/")} variant="ghost" size="sm">
               <LogOut className="h-4 w-4 mr-2" />
