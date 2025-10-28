@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Home, ClipboardList, UserCircle, LogOut, BarChart3 } from "lucide-react";
+import { Home, Scan, UserCircle, LogOut, BarChart3 } from "lucide-react";
 
 const Header = () => {
   const location = useLocation();
@@ -44,7 +44,7 @@ const Header = () => {
               size="default"
             >
               <Link to="/sign-out">
-                <ClipboardList className="w-4 h-4" />
+                <Scan className="w-4 h-4" />
                 <span className="hidden sm:inline">Scan Snack</span>
               </Link>
             </Button>
