@@ -26,6 +26,8 @@ const Admin = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [chartData, setChartData] = useState<Array<{ date: string; count: number }>>([]);
   const [selectedLog, setSelectedLog] = useState<SnackLog | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   const loadLogs = async () => {
     setLoading(true);
@@ -216,45 +218,7 @@ const Admin = () => {
               <span className="hidden sm:inline">Export</span>
             </Button>
             <Button
-              onClick={async () => {
-                const ok = window.confirm(
-                  `Clear all snack logs? This action cannot be undone.`
-                );
-                if (!ok) return;
-
-                // Optimistic UI clear
-                const prevLogs = logs;
-                const prevFiltered = filteredLogs;
-                setLogs([]);
-                setFilteredLogs([]);
-
-                try {
-                  const { data: deleted, error } = await supabase
-                    .from("snack_logs")
-                    .delete()
-                    .select("id");
-
-                  if (error) throw error;
-
-                  if (!deleted || deleted.length === 0) {
-                    // Nothing deleted - revert
-                    setLogs(prevLogs);
-                    setFilteredLogs(prevFiltered);
-                    await loadLogs();
-                    toast.error("Could not clear logs. You may not have permission.");
-                    return;
-                  }
-
-                  toast.success("All logs cleared");
-                  // reload to be sure
-                  loadLogs();
-                } catch (err) {
-                  console.error("Error clearing logs:", err);
-                  setLogs(prevLogs);
-                  setFilteredLogs(prevFiltered);
-                  toast.error("Failed to clear logs");
-                }
-              }}
+              onClick={() => setShowClearConfirm(true)}
               variant="destructive"
               size="sm"
             >
@@ -488,6 +452,109 @@ const Admin = () => {
                     className="flex-1"
                   >
                     Close
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
+      )}
+      {showClearConfirm && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
+          onClick={() => setShowClearConfirm(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Card className="w-full max-w-lg shadow-2xl">
+              <CardHeader>
+                <CardTitle className="text-xl">Clear All Snack Logs</CardTitle>
+                <CardDescription>This will permanently delete all snack logs.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Are you sure you want to clear the entire snack log? This action cannot be undone.
+                </p>
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={async () => {
+                      setClearing(true);
+                      const prevLogs = logs;
+                      const prevFiltered = filteredLogs;
+                      setLogs([]);
+                      setFilteredLogs([]);
+
+                      try {
+                        // Fetch all IDs first, then delete by id list - this makes errors clearer
+                        const { data: allRows, error: fetchErr } = await supabase
+                          .from("snack_logs")
+                          .select("id");
+
+                        if (fetchErr) throw fetchErr;
+
+                        const ids = (allRows || []).map((r: any) => r.id);
+
+                        if (ids.length === 0) {
+                          toast.success("No logs to clear");
+                          setShowClearConfirm(false);
+                          setClearing(false);
+                          return;
+                        }
+
+                        const { data: deleted, error } = await supabase
+                          .from("snack_logs")
+                          .delete()
+                          .in("id", ids)
+                          .select("id");
+
+                        if (error) throw error;
+
+                        if (!deleted || deleted.length === 0) {
+                          // Revert and surface permission-like message
+                          setLogs(prevLogs);
+                          setFilteredLogs(prevFiltered);
+                          await loadLogs();
+                          toast.error("Could not clear logs. You may not have permission to delete these rows.");
+                          setClearing(false);
+                          setShowClearConfirm(false);
+                          return;
+                        }
+
+                        toast.success("All logs cleared");
+                        await loadLogs();
+                        setClearing(false);
+                        setShowClearConfirm(false);
+                      } catch (err) {
+                        console.error("Error clearing logs:", err);
+                        setLogs(prevLogs);
+                        setFilteredLogs(prevFiltered);
+                        toast.error("Failed to clear logs. Check permissions or try again.");
+                        setClearing(false);
+                        setShowClearConfirm(false);
+                      }
+                    }}
+                    disabled={clearing}
+                  >
+                    {clearing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Clearing...
+                      </>
+                    ) : (
+                      "Yes, clear all"
+                    )}
+                  </Button>
+                  <Button variant="outline" className="flex-1" onClick={() => setShowClearConfirm(false)} disabled={clearing}>
+                    Cancel
                   </Button>
                 </div>
               </CardContent>
