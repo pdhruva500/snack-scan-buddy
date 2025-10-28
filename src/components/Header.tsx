@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Home, Scan, UserCircle, LogOut, BarChart3 } from "lucide-react";
+import { isLunchTime, getLunchTimeMessage } from "@/lib/timeRestrictions";
 
 const Header = () => {
   const location = useLocation();
@@ -38,16 +39,29 @@ const Header = () => {
               </Link>
             </Button>
             
-            <Button
-              asChild
-              variant={location.pathname === "/sign-out" ? "default" : "ghost"}
-              size="default"
-            >
-              <Link to="/sign-out">
-                <Scan className="w-4 h-4" />
-                <span className="hidden sm:inline">Scan Snack</span>
-              </Link>
-            </Button>
+            {isLunchTime() ? (
+              <div title={getLunchTimeMessage()}>
+                <Button
+                  variant={location.pathname === "/sign-out" ? "default" : "ghost"}
+                  size="default"
+                  disabled
+                >
+                  <Scan className="w-4 h-4" />
+                  <span className="hidden sm:inline">Scan Snack</span>
+                </Button>
+              </div>
+            ) : (
+              <Button
+                asChild
+                variant={location.pathname === "/sign-out" ? "default" : "ghost"}
+                size="default"
+              >
+                <Link to="/sign-out">
+                  <Scan className="w-4 h-4" />
+                  <span className="hidden sm:inline">Scan Snack</span>
+                </Link>
+              </Button>
+            )}
 
              <Button
                 asChild

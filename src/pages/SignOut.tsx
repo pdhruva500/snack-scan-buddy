@@ -197,6 +197,11 @@ const SignOut = () => {
   };
 
   const handleScanClick = () => {
+    if (isLunchTime()) {
+      toast.error(getLunchTimeMessage());
+      return;
+    }
+
     setShowScanner(true);
     setDetectedSnack(null);
   };
@@ -243,7 +248,13 @@ const SignOut = () => {
                     exit={{ opacity: 0 }}
                     className="space-y-4"
                   >
-                    <Button onClick={handleScanClick} className="w-full" size="lg">
+                    <Button
+                      onClick={handleScanClick}
+                      className="w-full"
+                      size="lg"
+                      disabled={!!lunchRestrictionMessage}
+                      title={lunchRestrictionMessage ?? undefined}
+                    >
                       <Camera className="mr-2 h-5 w-5" />
                       Scan Barcode
                     </Button>
@@ -264,16 +275,17 @@ const SignOut = () => {
                         placeholder="Enter snack name..."
                         value={manualSnackName}
                         onChange={(e) => setManualSnackName(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && !isSubmitting && handleManualEntry()}
-                        disabled={isSubmitting}
+                        onKeyDown={(e) => e.key === "Enter" && !isSubmitting && !lunchRestrictionMessage && handleManualEntry()}
+                        disabled={isSubmitting || !!lunchRestrictionMessage}
                         className="h-12 text-base"
                       />
-                      <Button 
-                        onClick={handleManualEntry} 
-                        variant="outline" 
-                        className="w-full" 
+                      <Button
+                        onClick={handleManualEntry}
+                        variant="outline"
+                        className="w-full"
                         size="lg"
-                        disabled={isSubmitting || !manualSnackName.trim()}
+                        disabled={isSubmitting || !manualSnackName.trim() || !!lunchRestrictionMessage}
+                        title={lunchRestrictionMessage ?? undefined}
                       >
                         {isSubmitting ? (
                           <>
@@ -326,7 +338,7 @@ const SignOut = () => {
                     </div>
 
                     <div className="flex gap-2">
-                      <Button onClick={handleSubmit} disabled={isSubmitting} className="flex-1" size="lg">
+                      <Button onClick={handleSubmit} disabled={isSubmitting || !!lunchRestrictionMessage} className="flex-1" size="lg" title={lunchRestrictionMessage ?? undefined}>
                         {isSubmitting ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -339,8 +351,9 @@ const SignOut = () => {
                       <Button
                         onClick={() => setDetectedSnack(null)}
                         variant="outline"
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || !!lunchRestrictionMessage}
                         size="lg"
+                        title={lunchRestrictionMessage ?? undefined}
                       >
                         Rescan
                       </Button>
@@ -358,7 +371,7 @@ const SignOut = () => {
         </motion.div>
 
         <AnimatePresence>
-          {showScanner && (
+          {showScanner && !isLunchTime() && (
             <BarcodeScanner
               onDetected={handleBarcodeDetected}
               onClose={() => {
