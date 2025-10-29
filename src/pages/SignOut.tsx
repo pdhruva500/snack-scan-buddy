@@ -197,11 +197,7 @@ const SignOut = () => {
   };
 
   const handleScanClick = () => {
-    if (isLunchTime()) {
-      toast.error(getLunchTimeMessage());
-      return;
-    }
-
+    // Allow opening the scanner even during restricted hours so users don't think it's broken.
     setShowScanner(true);
     setDetectedSnack(null);
   };
@@ -252,7 +248,6 @@ const SignOut = () => {
                       onClick={handleScanClick}
                       className="w-full"
                       size="lg"
-                      disabled={!!lunchRestrictionMessage}
                       title={lunchRestrictionMessage ?? undefined}
                     >
                       <Camera className="mr-2 h-5 w-5" />
@@ -271,31 +266,40 @@ const SignOut = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Input
-                        placeholder="Enter snack name..."
-                        value={manualSnackName}
-                        onChange={(e) => setManualSnackName(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && !isSubmitting && !lunchRestrictionMessage && handleManualEntry()}
-                        disabled={isSubmitting || !!lunchRestrictionMessage}
-                        className="h-12 text-base"
-                      />
-                      <Button
-                        onClick={handleManualEntry}
-                        variant="outline"
-                        className="w-full"
-                        size="lg"
-                        disabled={isSubmitting || !manualSnackName.trim() || !!lunchRestrictionMessage}
-                        title={lunchRestrictionMessage ?? undefined}
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Processing...
-                          </>
-                        ) : (
-                          "Add Manually"
-                        )}
-                      </Button>
+                      {lunchRestrictionMessage ? (
+                        <Input
+                          value={lunchRestrictionMessage}
+                          readOnly
+                          className="h-12 text-base"
+                        />
+                      ) : (
+                        <>
+                          <Input
+                            placeholder="Enter snack name..."
+                            value={manualSnackName}
+                            onChange={(e) => setManualSnackName(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && !isSubmitting && handleManualEntry()}
+                            disabled={isSubmitting}
+                            className="h-12 text-base"
+                          />
+                          <Button
+                            onClick={handleManualEntry}
+                            variant="outline"
+                            className="w-full"
+                            size="lg"
+                            disabled={isSubmitting || !manualSnackName.trim()}
+                          >
+                            {isSubmitting ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Processing...
+                              </>
+                            ) : (
+                              "Add Manually"
+                            )}
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </motion.div>
                 ) : (
@@ -371,7 +375,7 @@ const SignOut = () => {
         </motion.div>
 
         <AnimatePresence>
-          {showScanner && !isLunchTime() && (
+          {showScanner && (
             <BarcodeScanner
               onDetected={handleBarcodeDetected}
               onClose={() => {
@@ -383,6 +387,7 @@ const SignOut = () => {
                 }
                 setShowScanner(false);
               }}
+              disabled={!!lunchRestrictionMessage}
             />
           )}
         </AnimatePresence>

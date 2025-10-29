@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 interface BarcodeScannerProps {
   onDetected: (barcode: string) => void;
   onClose: () => void;
+  disabled?: boolean;
 }
 
-export const BarcodeScanner = ({ onDetected, onClose }: BarcodeScannerProps) => {
+export const BarcodeScanner = ({ onDetected, onClose, disabled = false }: BarcodeScannerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -18,6 +19,11 @@ export const BarcodeScanner = ({ onDetected, onClose }: BarcodeScannerProps) => 
   useEffect(() => {
     let mounted = true;
     const startScanner = async () => {
+      if (disabled) {
+        // When disabled, do not request camera or start decoding.
+        setIsLoading(false);
+        return;
+      }
       try {
         const codeReader = new BrowserMultiFormatReader();
         readerRef.current = codeReader;
@@ -163,27 +169,39 @@ export const BarcodeScanner = ({ onDetected, onClose }: BarcodeScannerProps) => 
         )}
 
         <div className="relative rounded-lg overflow-hidden">
-          <video
-            ref={videoRef}
-            className={`w-full rounded-lg ${isLoading || error ? 'hidden' : ''}`}
-            style={{ maxHeight: '70vh' }}
-            autoPlay
-            playsInline
-            muted
-          />
-          
-          {!isLoading && !error && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="absolute inset-0 pointer-events-none"
-            >
-              <div className="absolute inset-0 border-4 border-primary/50 rounded-lg" />
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-2 border-primary rounded-lg" />
-              <p className="absolute bottom-4 left-0 right-0 text-center text-white bg-black/50 py-2">
-                Position barcode in the frame
-              </p>
-            </motion.div>
+          {disabled ? (
+            <div className="w-full rounded-lg bg-black/60 text-white flex items-center justify-center" style={{ height: '60vh' }}>
+              <div className="text-center px-4">
+                <Camera className="h-16 w-16 mx-auto mb-4 opacity-60" />
+                <p className="text-lg opacity-80">Scanner disabled during restricted hours</p>
+                <p className="text-sm opacity-60 mt-2">You can close this window and try again later.</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <video
+                ref={videoRef}
+                className={`w-full rounded-lg ${isLoading || error ? 'hidden' : ''}`}
+                style={{ maxHeight: '70vh' }}
+                autoPlay
+                playsInline
+                muted
+              />
+              
+              {!isLoading && !error && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="absolute inset-0 pointer-events-none"
+                >
+                  <div className="absolute inset-0 border-4 border-primary/50 rounded-lg" />
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-2 border-primary rounded-lg" />
+                  <p className="absolute bottom-4 left-0 right-0 text-center text-white bg-black/50 py-2">
+                    Position barcode in the frame
+                  </p>
+                </motion.div>
+              )}
+            </>
           )}
         </div>
       </div>
