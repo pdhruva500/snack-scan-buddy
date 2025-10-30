@@ -21,6 +21,8 @@ const SimpleAdmin = () => {
   const [filteredLogs, setFilteredLogs] = useState<SnackLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedToDelete, setSelectedToDelete] = useState<SnackLog | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadLogs = () => {
     setLoading(true);
@@ -131,6 +133,80 @@ const SimpleAdmin = () => {
             </Button>
           </div>
         </motion.div>
+        {selectedToDelete && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
+            onClick={() => setSelectedToDelete(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Card className="w-full max-w-md shadow-2xl">
+                <CardHeader>
+                  <CardTitle className="text-xl">Delete Snack Log</CardTitle>
+                  <CardDescription>Remove this temporary snack log from the session storage.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="p-3 rounded-lg bg-muted/50">
+                      <p className="text-xs text-muted-foreground mb-1">Student Name</p>
+                      <p className="font-semibold text-lg">{selectedToDelete.student_name}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted/50">
+                      <p className="text-xs text-muted-foreground mb-1">Snack</p>
+                      <p className="font-semibold text-lg">{selectedToDelete.snack_name}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      variant="destructive"
+                      className="flex-1"
+                      onClick={async () => {
+                        setDeleting(true);
+                        try {
+                          const stored = JSON.parse(sessionStorage.getItem('simple_logs') || '[]');
+                          const updated = (stored as any[]).filter((s) => s.id !== selectedToDelete.id);
+                          sessionStorage.setItem('simple_logs', JSON.stringify(updated));
+                          // update UI
+                          const newLogs = logs.filter((l) => l.id !== selectedToDelete.id);
+                          setLogs(newLogs);
+                          setFilteredLogs(prev => prev.filter(p => p.id !== selectedToDelete.id));
+                          toast.success('Log deleted');
+                          window.dispatchEvent(new Event('simple_log_removed'));
+                          setSelectedToDelete(null);
+                        } catch (e) {
+                          console.error('Failed to delete simple log', e);
+                          toast.error('Failed to delete log');
+                        } finally {
+                          setDeleting(false);
+                        }
+                      }}
+                      disabled={deleting}
+                    >
+                      {deleting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Deleting...
+                        </>
+                      ) : (
+                        'Delete'
+                      )}
+                    </Button>
+                    <Button variant="outline" className="flex-1" onClick={() => setSelectedToDelete(null)} disabled={deleting}>
+                      Cancel
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </motion.div>
+        )}
 
         {/* Stats Card */}
         <motion.div
@@ -204,24 +280,7 @@ const SimpleAdmin = () => {
                                       <Button
                                         size="sm"
                                         variant="ghost"
-                                        onClick={() => {
-                                          const ok = window.confirm('Delete this log? This cannot be undone.');
-                                          if (!ok) return;
-                                          try {
-                                            const stored = JSON.parse(sessionStorage.getItem('simple_logs') || '[]');
-                                            const updated = (stored as any[]).filter((s) => s.id !== log.id);
-                                            sessionStorage.setItem('simple_logs', JSON.stringify(updated));
-                                            // update UI optimistically
-                                            const newLogs = logs.filter((l) => l.id !== log.id);
-                                            setLogs(newLogs);
-                                            setFilteredLogs(prev => prev.filter(p => p.id !== log.id));
-                                            toast.success('Log deleted');
-                                            window.dispatchEvent(new Event('simple_log_removed'));
-                                          } catch (e) {
-                                            console.error('Failed to delete log', e);
-                                            toast.error('Failed to delete log');
-                                          }
-                                        }}
+                                        onClick={() => setSelectedToDelete(log)}
                                       >
                                         <Trash className="h-4 w-4 text-destructive" />
                                       </Button>
