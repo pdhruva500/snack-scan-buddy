@@ -24,27 +24,17 @@ const Admin = () => {
   const [filteredLogs, setFilteredLogs] = useState<SnackLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isSessionMode, setIsSessionMode] = useState(false);
+  
   const [chartData, setChartData] = useState<Array<{ date: string; count: number }>>([]);
   const [selectedLog, setSelectedLog] = useState<SnackLog | null>(null);
-  const [selectedToDelete, setSelectedToDelete] = useState<SnackLog | null>(null);
-  const [deleting, setDeleting] = useState(false);
+  
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [showSimpleLogs, setShowSimpleLogs] = useState(false);
   const loadLogs = async () => {
     setLoading(true);
     try {
-      if (isSessionMode) {
-        // Load ephemeral session logs (simple-mode) for testing
-        const storedLogs = JSON.parse(sessionStorage.getItem("simple_logs") || "[]");
-        // Sort by timestamp descending
-        const sortedLogs = (storedLogs as SnackLog[]).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-        setLogs(sortedLogs);
-        setFilteredLogs(sortedLogs);
-        generateChartData(sortedLogs);
-        return;
-      }
+      
       const { data, error } = await supabase
         .from("snack_logs")
         .select("id, student_name, snack_name, timestamp")
@@ -81,38 +71,26 @@ const Admin = () => {
   useEffect(() => {
     loadLogs();
 
-    // If not in session mode, set up real-time subscription to DB changes
-    let channel: any = null;
-    if (!isSessionMode) {
-      channel = supabase
-        .channel('snack-logs-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'snack_logs'
-          },
-          () => {
-            loadLogs();
-          }
-        )
-        .subscribe();
-    }
-
-    // Always listen for session-based simple-mode events so Admin refreshes when simple logs change
-    const handleSimpleChange = () => loadLogs();
-    window.addEventListener('simple_log_added', handleSimpleChange);
-    window.addEventListener('simple_log_removed', handleSimpleChange);
-    window.addEventListener('simple_logs_cleared', handleSimpleChange);
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('snack-logs-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'snack_logs'
+        },
+        () => {
+          loadLogs();
+        }
+      )
+      .subscribe();
 
     return () => {
-      if (channel) supabase.removeChannel(channel);
-      window.removeEventListener('simple_log_added', handleSimpleChange);
-      window.removeEventListener('simple_log_removed', handleSimpleChange);
-      window.removeEventListener('simple_logs_cleared', handleSimpleChange);
+      supabase.removeChannel(channel);
     };
-  }, [isSessionMode]);
+  }, []);
 
   const topSnacks = logs.reduce((acc, log) => {
     acc[log.snack_name] = (acc[log.snack_name] || 0) + 1;
@@ -393,29 +371,18 @@ const Admin = () => {
                         <TableHead>Student Name</TableHead>
                         <TableHead>Snack Name</TableHead>
                         <TableHead>Timestamp</TableHead>
-                        <TableHead className="w-24">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredLogs.map((log) => (
                         <TableRow 
                           key={log.id}
-                          className="hover:bg-muted/50 transition-colors"
+                          className="cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => setSelectedLog(log)}
                         >
-                          <TableCell className="font-medium cursor-pointer" onClick={() => setSelectedLog(log)}>{log.student_name}</TableCell>
-                          <TableCell className="cursor-pointer" onClick={() => setSelectedLog(log)}>{log.snack_name}</TableCell>
-                          <TableCell className="text-muted-foreground cursor-pointer" onClick={() => setSelectedLog(log)}>{formatDate(log.timestamp)}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2 justify-end">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={(e) => { e.stopPropagation(); setSelectedToDelete(log); }}
-                              >
-                                <Trash className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </div>
-                          </TableCell>
+                          <TableCell className="font-medium">{log.student_name}</TableCell>
+                          <TableCell>{log.snack_name}</TableCell>
+                          <TableCell className="text-muted-foreground">{formatDate(log.timestamp)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -464,7 +431,7 @@ const Admin = () => {
                 <div className="flex gap-2 pt-4">
                   <Button
                     variant="destructive"
-                    onClick={() => setSelectedToDelete(selectedLog)}
+                    onClick={() => handleDeleteLog(selectedLog.id)}
                     className="flex-1"
                   >
                     Delete Log
@@ -483,100 +450,7 @@ const Admin = () => {
         </motion.div>
       )}
 
-      {/* Per-row delete confirmation modal (DB-backed) - matches SimpleAdmin UX but operates on snack_logs */}
-      {selectedToDelete && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
-          onClick={() => setSelectedToDelete(null)}
-        >
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Card className="w-full max-w-md shadow-2xl">
-              <CardHeader>
-                <CardTitle className="text-xl">Delete Snack Log</CardTitle>
-                <CardDescription>Remove this snack log from the database.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="p-3 rounded-lg bg-muted/50">
-                    <p className="text-xs text-muted-foreground mb-1">Student Name</p>
-                    <p className="font-semibold text-lg">{selectedToDelete.student_name}</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-muted/50">
-                    <p className="text-xs text-muted-foreground mb-1">Snack</p>
-                    <p className="font-semibold text-lg">{selectedToDelete.snack_name}</p>
-                  </div>
-                </div>
-                <div className="flex gap-2 pt-2">
-                  <Button
-                    variant="destructive"
-                    className="flex-1"
-                    onClick={async () => {
-                      setDeleting(true);
-                      const prevLogs = logs;
-                      const prevFiltered = filteredLogs;
-                      // Optimistic UI
-                      setLogs((l) => l.filter((x) => x.id !== selectedToDelete.id));
-                      setFilteredLogs((f) => f.filter((x) => x.id !== selectedToDelete.id));
-
-                      try {
-                        const { data: deleted, error } = await supabase
-                          .from('snack_logs')
-                          .delete()
-                          .eq('id', selectedToDelete.id)
-                          .select('id');
-
-                        if (error) throw error;
-
-                        if (!deleted || deleted.length === 0) {
-                          // Revert
-                          setLogs(prevLogs);
-                          setFilteredLogs(prevFiltered);
-                          await loadLogs();
-                          toast.error('Could not delete log. You may not have permission.');
-                          setSelectedToDelete(null);
-                          return;
-                        }
-
-                        toast.success('Log deleted successfully');
-                        await loadLogs();
-                        setSelectedToDelete(null);
-                      } catch (err) {
-                        console.error('Error deleting log:', err);
-                        setLogs(prevLogs);
-                        setFilteredLogs(prevFiltered);
-                        toast.error('Failed to delete log');
-                      } finally {
-                        setDeleting(false);
-                      }
-                    }}
-                    disabled={deleting}
-                  >
-                    {deleting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Deleting...
-                      </>
-                    ) : (
-                      'Delete'
-                    )}
-                  </Button>
-                  <Button variant="outline" className="flex-1" onClick={() => setSelectedToDelete(null)} disabled={deleting}>
-                    Cancel
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </motion.div>
-      )}
+      
       {showClearConfirm && (
         <motion.div
           initial={{ opacity: 0 }}
