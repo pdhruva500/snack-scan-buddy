@@ -6,9 +6,8 @@ import Header from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Home, Camera, Check, Trash, RefreshCw } from "lucide-react";
+import { Loader2, Home, Camera, Check, Trash } from "lucide-react";
 import { toast } from "sonner";
 import { isLunchTime, getLunchTimeMessage } from "@/lib/timeRestrictions";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
@@ -25,12 +24,6 @@ const SignOut = () => {
   const [lunchRestrictionMessage, setLunchRestrictionMessage] = useState<string | null>(null);
   const [manualSnackName, setManualSnackName] = useState("");
   const [localLogs, setLocalLogs] = useState<any[]>([]);
-  const [showLocalModal, setShowLocalModal] = useState(false);
-  const [selectedLocalDelete, setSelectedLocalDelete] = useState<any | null>(null);
-  const [showLocalClearConfirm, setShowLocalClearConfirm] = useState(false);
-  const [localLoading, setLocalLoading] = useState(false);
-  const [localDeleting, setLocalDeleting] = useState(false);
-  const [localClearing, setLocalClearing] = useState(false);
 
   // Navigate if not logged in
   useEffect(() => {
@@ -100,20 +93,7 @@ const SignOut = () => {
     }
   };
 
-  // Local/session storage helpers (same format as Simple Mode)
-  const loadLocalLogs = () => {
-    setLocalLoading(true);
-    try {
-      const stored = JSON.parse(sessionStorage.getItem('simple_logs') || '[]');
-      const sorted = (stored as any[]).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      setLocalLogs(sorted);
-    } catch (e) {
-      console.error('Failed to load local logs', e);
-      setLocalLogs([]);
-    } finally {
-      setLocalLoading(false);
-    }
-  };
+  // Local/session storage is read directly where needed; local helper was removed to reduce unused state.
 
   const handleManualEntry = async () => {
     if (!manualSnackName.trim()) {
@@ -125,79 +105,41 @@ const SignOut = () => {
     try {
       const userInput = manualSnackName.trim();
 
-      if (!user) {
-        toast.error("User not authenticated");
-        setIsSubmitting(false);
-        return;
-      }
-
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-
-      const authUser = userData.user;
-
-      // Get user's profile for full name
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", authUser.id)
-        .maybeSingle();
-
-      // Get any existing snack to use as placeholder ID (since snack_id is required)
-      const { data: anySnack } = await supabase
-        .from("snacks")
-        .select("id")
-        .limit(1)
-        .maybeSingle();
-
-      if (!anySnack) {
-        toast.error("Database error. Please contact admin.");
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Log directly using the typed name, no database checks
-      const { error: logError } = await supabase.from("snack_logs").insert({
-        user_id: authUser.id,
-        snack_id: anySnack.id,
-        snack_name: userInput,
-        student_name: profile?.full_name || authUser.email || 'Unknown',
-      });
-
-      if (logError) {
-        console.error("Error logging snack to DB:", logError);
-        // Fallback: store locally in sessionStorage (same format as Simple Mode)
-        try {
-          const existing = JSON.parse(sessionStorage.getItem('simple_logs') || '[]');
-          const newLog = {
-            id: Date.now().toString(),
-            student_name: profile?.full_name || authUser.email || 'Unknown',
-            snack_name: userInput,
-            timestamp: new Date().toISOString(),
-          };
-          existing.push(newLog);
-          sessionStorage.setItem('simple_logs', JSON.stringify(existing));
-          window.dispatchEvent(new Event('simple_log_added'));
-          toast.success('Snack saved locally', { description: `"${userInput}" saved for ${newLog.student_name}` });
-          setManualSnackName('');
-          setTimeout(() => navigate('/'), 1200);
-          return;
-        } catch (err) {
-          console.error('Local fallback failed:', err);
-          throw logError; // rethrow original DB error
+      // Prefer to get user's full name if available, but do not write to DB
+      let studentName = 'Unknown';
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        const authUser = userData?.user;
+        if (authUser) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', authUser.id)
+            .maybeSingle();
+          studentName = profile?.full_name || authUser.email || 'Unknown';
         }
+      } catch (e) {
+        // ignore profile lookup failures and continue with Unknown/email fallback
+        console.warn('Failed to fetch profile for manual entry:', e);
       }
 
-      toast.success("Snack logged!", { 
-        description: `"${userInput}" has been logged successfully` 
-      });
-
-      setManualSnackName("");
-
-      setTimeout(() => navigate("/"), 1500);
+      // Save to sessionStorage (same format as Simple Mode)
+      const existing = JSON.parse(sessionStorage.getItem('simple_logs') || '[]');
+      const newLog = {
+        id: Date.now().toString(),
+        student_name: studentName,
+        snack_name: userInput,
+        timestamp: new Date().toISOString(),
+      };
+      existing.push(newLog);
+      sessionStorage.setItem('simple_logs', JSON.stringify(existing));
+      window.dispatchEvent(new Event('simple_log_added'));
+      toast.success('Snack saved locally', { description: `"${userInput}" saved for ${newLog.student_name}` });
+      setManualSnackName('');
+      setTimeout(() => navigate('/'), 1200);
     } catch (err) {
-      console.error("Error adding snack:", err);
-      toast.error("Failed to add snack. Please try again.");
+      console.error('Error adding snack locally:', err);
+      toast.error('Failed to add snack. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -208,28 +150,42 @@ const SignOut = () => {
     setIsSubmitting(true);
 
     try {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
+      // Instead of writing to the DB, save detected snack to sessionStorage (simple-mode behavior)
+      let studentName = 'Unknown';
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        const authUser = userData?.user;
+        if (authUser) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', authUser.id)
+            .maybeSingle();
+          studentName = profile?.full_name || authUser.email || 'Unknown';
+        }
+      } catch (e) {
+        console.warn('Failed to fetch profile for detected snack:', e);
+      }
 
-      const authUser = userData.user;
-
-      const { error } = await supabase.from("snack_logs").insert({
-        user_id: authUser.id,
-        snack_id: detectedSnack.id,
-        snack_name: detectedSnack.name,
-        student_name: authUser.email || 'Unknown',
-      });
-
-      if (error) throw error;
-
-      toast.success("Snack logged successfully!", {
-        description: `${detectedSnack.name} signed out`,
-      });
-
-      setDetectedSnack(null);
-      setShowScanner(false);
-
-      setTimeout(() => navigate("/"), 1500);
+      try {
+        const existing = JSON.parse(sessionStorage.getItem('simple_logs') || '[]');
+        const newLog = {
+          id: Date.now().toString(),
+          student_name: studentName,
+          snack_name: detectedSnack.name,
+          timestamp: new Date().toISOString(),
+        };
+        existing.push(newLog);
+        sessionStorage.setItem('simple_logs', JSON.stringify(existing));
+        window.dispatchEvent(new Event('simple_log_added'));
+        toast.success('Snack saved locally', { description: `${detectedSnack.name} for ${studentName}` });
+        setDetectedSnack(null);
+        setShowScanner(false);
+        setTimeout(() => navigate('/'), 1200);
+      } catch (err) {
+        console.error('Failed to save detected snack locally:', err);
+        toast.error('Failed to log snack. Please try again.');
+      }
     } catch (error) {
       console.error("Error logging snack:", error);
       toast.error("Failed to log snack. Please try again.");
@@ -243,6 +199,34 @@ const SignOut = () => {
     setShowScanner(true);
     setDetectedSnack(null);
   };
+
+  // Load local/session logs and listen for changes (same behavior as Simple Mode)
+  useEffect(() => {
+    const load = () => {
+      try {
+        const stored = JSON.parse(sessionStorage.getItem('simple_logs') || '[]');
+        const sorted = (stored as any[]).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setLocalLogs(sorted);
+      } catch (e) {
+        setLocalLogs([]);
+      }
+    };
+
+    load();
+    const onAdded = () => load();
+    const onRemoved = () => load();
+    const onCleared = () => load();
+
+    window.addEventListener('simple_log_added', onAdded);
+    window.addEventListener('simple_log_removed', onRemoved);
+    window.addEventListener('simple_logs_cleared', onCleared);
+
+    return () => {
+      window.removeEventListener('simple_log_added', onAdded);
+      window.removeEventListener('simple_log_removed', onRemoved);
+      window.removeEventListener('simple_logs_cleared', onCleared);
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -340,12 +324,7 @@ const SignOut = () => {
                               "Add Manually"
                             )}
                           </Button>
-                          <div className="flex justify-end mt-2">
-                            <Button variant="ghost" size="sm" onClick={() => { loadLocalLogs(); setShowLocalModal(true); }}>
-                              <RefreshCw className="mr-2 h-4 w-4" />
-                              Manage Local Logs
-                            </Button>
-                          </div>
+                          {/* local logs managed below */}
                         </>
                       )}
                     </div>
@@ -422,79 +401,61 @@ const SignOut = () => {
           </Card>
                 </motion.div>
 
-                {showLocalModal && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
-                    onClick={() => setShowLocalModal(false)}
-                  >
-                    <motion.div
-                      initial={{ scale: 0.95, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0.95, opacity: 0 }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Card className="w-full max-w-2xl shadow-2xl">
-                        <CardHeader className="flex items-center justify-between">
-                          <div>
-                            <CardTitle className="text-lg">Local Session Logs</CardTitle>
-                            <CardDescription className="text-sm">Temporary logs stored in this browser session</CardDescription>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="sm" onClick={() => loadLocalLogs()}>
-                              <RefreshCw className="h-4 w-4 mr-2" />
-                              Refresh
-                            </Button>
-                            <Button variant="destructive" size="sm" onClick={() => setShowLocalClearConfirm(true)}>
-                              <Trash className="h-4 w-4 mr-2" />
-                              Clear All
-                            </Button>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          {localLoading ? (
-                            <div className="py-12 flex items-center justify-center">
-                              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                {/* Inline local logs card (simple list) */}
+                <div className="mt-6">
+                  <Card>
+                    <CardHeader className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-sm">Local Session Logs</CardTitle>
+                        <CardDescription className="text-xs">Temporary logs stored in this browser session</CardDescription>
+                      </div>
+                      <div>
+                        <Button variant="destructive" size="sm" onClick={() => {
+                          sessionStorage.removeItem('simple_logs');
+                          setLocalLogs([]);
+                          window.dispatchEvent(new Event('simple_logs_cleared'));
+                          toast.success('All local logs cleared');
+                        }}>
+                          <Trash className="mr-2 h-4 w-4" />
+                          Clear All
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {localLogs.length === 0 ? (
+                        <p className="text-center text-muted-foreground py-4">No local logs yet.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {localLogs.map((log) => (
+                            <div key={log.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50">
+                              <div>
+                                <div className="font-medium">{log.student_name}</div>
+                                <div className="text-sm text-muted-foreground">{log.snack_name} • {new Date(log.timestamp).toLocaleString()}</div>
+                              </div>
+                              <div>
+                                <Button size="sm" variant="ghost" onClick={() => {
+                                  try {
+                                    const stored = JSON.parse(sessionStorage.getItem('simple_logs') || '[]');
+                                    const updated = (stored as any[]).filter((s) => s.id !== log.id);
+                                    sessionStorage.setItem('simple_logs', JSON.stringify(updated));
+                                    setLocalLogs(updated);
+                                    window.dispatchEvent(new Event('simple_log_removed'));
+                                    toast.success('Local log deleted');
+                                  } catch (e) {
+                                    console.error('Failed to delete local log', e);
+                                    toast.error('Failed to delete local log');
+                                  }
+                                }}>
+                                  <Trash className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
                             </div>
-                          ) : localLogs.length === 0 ? (
-                            <p className="text-center text-muted-foreground py-8">No local logs found.</p>
-                          ) : (
-                            <div className="overflow-x-auto">
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead>Student</TableHead>
-                                    <TableHead>Snack</TableHead>
-                                    <TableHead>Time</TableHead>
-                                    <TableHead className="w-24">Actions</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {localLogs.map((log) => (
-                                    <TableRow key={log.id}>
-                                      <TableCell className="font-medium">{log.student_name}</TableCell>
-                                      <TableCell>{log.snack_name}</TableCell>
-                                      <TableCell className="text-muted-foreground">{new Date(log.timestamp).toLocaleString()}</TableCell>
-                                      <TableCell>
-                                        <div className="flex items-center gap-2">
-                                          <Button size="sm" variant="ghost" onClick={() => setSelectedLocalDelete(log)}>
-                                            <Trash className="h-4 w-4 text-destructive" />
-                                          </Button>
-                                        </div>
-                                      </TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  </motion.div>
-                )}
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
 
         <AnimatePresence>
           {showScanner && (
@@ -513,137 +474,8 @@ const SignOut = () => {
             />
           )}
         </AnimatePresence>
-        {selectedLocalDelete && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
-            onClick={() => setSelectedLocalDelete(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Card className="w-full max-w-md shadow-2xl">
-                <CardHeader>
-                  <CardTitle className="text-xl">Delete Local Log</CardTitle>
-                  <CardDescription>Remove this temporary snack log from the session storage.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="p-3 rounded-lg bg-muted/50">
-                      <p className="text-xs text-muted-foreground mb-1">Student Name</p>
-                      <p className="font-semibold text-lg">{selectedLocalDelete.student_name}</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted/50">
-                      <p className="text-xs text-muted-foreground mb-1">Snack</p>
-                      <p className="font-semibold text-lg">{selectedLocalDelete.snack_name}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      variant="destructive"
-                      className="flex-1"
-                      onClick={() => {
-                        setLocalDeleting(true);
-                        try {
-                          const stored = JSON.parse(sessionStorage.getItem('simple_logs') || '[]');
-                          const updated = (stored as any[]).filter((s) => s.id !== selectedLocalDelete.id);
-                          sessionStorage.setItem('simple_logs', JSON.stringify(updated));
-                          loadLocalLogs();
-                          window.dispatchEvent(new Event('simple_log_removed'));
-                          toast.success('Local log deleted');
-                          setSelectedLocalDelete(null);
-                        } catch (e) {
-                          console.error('Failed to delete local log', e);
-                          toast.error('Failed to delete local log');
-                        } finally {
-                          setLocalDeleting(false);
-                        }
-                      }}
-                      disabled={localDeleting}
-                    >
-                      {localDeleting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Deleting...
-                        </>
-                      ) : (
-                        'Delete'
-                      )}
-                    </Button>
-                    <Button variant="outline" className="flex-1" onClick={() => setSelectedLocalDelete(null)} disabled={localDeleting}>
-                      Cancel
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </motion.div>
-        )}
-        {showLocalClearConfirm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
-            onClick={() => setShowLocalClearConfirm(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Card className="w-full max-w-lg shadow-2xl">
-                <CardHeader>
-                  <CardTitle className="text-xl">Clear All Local Logs</CardTitle>
-                  <CardDescription>This will permanently remove all temporary logs stored in this browser session.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">Are you sure you want to clear all local logs? This action cannot be undone for this session.</p>
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      variant="destructive"
-                      className="flex-1"
-                      onClick={() => {
-                        setLocalClearing(true);
-                        try {
-                          sessionStorage.removeItem('simple_logs');
-                          loadLocalLogs();
-                          window.dispatchEvent(new Event('simple_logs_cleared'));
-                          toast.success('All local logs cleared');
-                          setShowLocalClearConfirm(false);
-                        } catch (err) {
-                          console.error('Error clearing local logs:', err);
-                          toast.error('Failed to clear local logs');
-                        } finally {
-                          setLocalClearing(false);
-                        }
-                      }}
-                      disabled={localClearing}
-                    >
-                      {localClearing ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Clearing...
-                        </>
-                      ) : (
-                        'Yes, clear all'
-                      )}
-                    </Button>
-                    <Button variant="outline" className="flex-1" onClick={() => setShowLocalClearConfirm(false)} disabled={localClearing}>
-                      Cancel
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </motion.div>
-        )}
+        {/* per-row delete modal removed; inline delete buttons provided */}
+        {/* clear-confirm modal removed; Clear All performs immediately */}
       </div>
     </div>
   );
