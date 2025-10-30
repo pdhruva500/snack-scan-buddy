@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Camera, Check, Home } from "lucide-react";
+import { Loader2, Camera, Check, Home, UserCircle } from "lucide-react";
 import { toast } from "sonner";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -160,6 +160,7 @@ const SimpleSignOut = () => {
 
             <div className="mt-4 md:mt-0 md:absolute md:right-0 md:top-0">
               <Button variant="ghost" size="sm" onClick={() => navigate('/simple/admin')}>
+                <UserCircle className="mr-2 h-4 w-4" />
                 Admin
               </Button>
             </div>

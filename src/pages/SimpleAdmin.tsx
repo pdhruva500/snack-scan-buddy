@@ -23,6 +23,8 @@ const SimpleAdmin = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedToDelete, setSelectedToDelete] = useState<SnackLog | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   const loadLogs = () => {
     setLoading(true);
@@ -116,15 +118,7 @@ const SimpleAdmin = () => {
               <span className="hidden sm:inline">Back to Simple</span>
             </Button>
             <Button
-              onClick={() => {
-                const ok = window.confirm('Clear all simple logs? This will remove all temporary entries.');
-                if (!ok) return;
-                sessionStorage.removeItem('simple_logs');
-                setLogs([]);
-                setFilteredLogs([]);
-                toast.success('All simple logs cleared');
-                window.dispatchEvent(new Event('simple_logs_cleared'));
-              }}
+              onClick={() => setShowClearConfirm(true)}
               variant="destructive"
               size="sm"
             >
@@ -207,6 +201,74 @@ const SimpleAdmin = () => {
             </motion.div>
           </motion.div>
         )}
+      {showClearConfirm && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
+          onClick={() => setShowClearConfirm(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Card className="w-full max-w-lg shadow-2xl">
+              <CardHeader>
+                <CardTitle className="text-xl">Clear All Simple Logs</CardTitle>
+                <CardDescription>This will permanently remove all temporary simple-mode logs from this browser session.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Are you sure you want to clear all simple logs? This action cannot be undone for this session.
+                </p>
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={async () => {
+                      setClearing(true);
+                      const prevLogs = logs;
+                      const prevFiltered = filteredLogs;
+                      setLogs([]);
+                      setFilteredLogs([]);
+
+                      try {
+                        sessionStorage.removeItem('simple_logs');
+                        toast.success('All simple logs cleared');
+                        window.dispatchEvent(new Event('simple_logs_cleared'));
+                        setShowClearConfirm(false);
+                      } catch (err) {
+                        console.error('Error clearing simple logs:', err);
+                        setLogs(prevLogs);
+                        setFilteredLogs(prevFiltered);
+                        toast.error('Failed to clear simple logs');
+                      } finally {
+                        setClearing(false);
+                      }
+                    }}
+                    disabled={clearing}
+                  >
+                    {clearing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Clearing...
+                      </>
+                    ) : (
+                      'Yes, clear all'
+                    )}
+                  </Button>
+                  <Button variant="outline" className="flex-1" onClick={() => setShowClearConfirm(false)} disabled={clearing}>
+                    Cancel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
+      )}
 
         {/* Stats Card */}
         <motion.div
