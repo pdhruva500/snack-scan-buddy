@@ -6,8 +6,9 @@ import Header from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Home, Camera, Check } from "lucide-react";
+import { Loader2, Home, Camera, Check, Trash, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { isLunchTime, getLunchTimeMessage } from "@/lib/timeRestrictions";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
@@ -23,6 +24,13 @@ const SignOut = () => {
   const [detectedSnack, setDetectedSnack] = useState<{ id: string; name: string; image?: string; brand?: string } | null>(null);
   const [lunchRestrictionMessage, setLunchRestrictionMessage] = useState<string | null>(null);
   const [manualSnackName, setManualSnackName] = useState("");
+  const [localLogs, setLocalLogs] = useState<any[]>([]);
+  const [showLocalModal, setShowLocalModal] = useState(false);
+  const [selectedLocalDelete, setSelectedLocalDelete] = useState<any | null>(null);
+  const [showLocalClearConfirm, setShowLocalClearConfirm] = useState(false);
+  const [localLoading, setLocalLoading] = useState(false);
+  const [localDeleting, setLocalDeleting] = useState(false);
+  const [localClearing, setLocalClearing] = useState(false);
 
   // Navigate if not logged in
   useEffect(() => {
@@ -89,6 +97,21 @@ const SignOut = () => {
     } catch (err) {
       console.error("Error fetching snack:", err);
       toast.error("An error occurred while looking up the snack.");
+    }
+  };
+
+  // Local/session storage helpers (same format as Simple Mode)
+  const loadLocalLogs = () => {
+    setLocalLoading(true);
+    try {
+      const stored = JSON.parse(sessionStorage.getItem('simple_logs') || '[]');
+      const sorted = (stored as any[]).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      setLocalLogs(sorted);
+    } catch (e) {
+      console.error('Failed to load local logs', e);
+      setLocalLogs([]);
+    } finally {
+      setLocalLoading(false);
     }
   };
 
@@ -317,6 +340,12 @@ const SignOut = () => {
                               "Add Manually"
                             )}
                           </Button>
+                          <div className="flex justify-end mt-2">
+                            <Button variant="ghost" size="sm" onClick={() => { loadLocalLogs(); setShowLocalModal(true); }}>
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                              Manage Local Logs
+                            </Button>
+                          </div>
                         </>
                       )}
                     </div>
@@ -391,7 +420,81 @@ const SignOut = () => {
               </Button>
             </CardContent>
           </Card>
-        </motion.div>
+                </motion.div>
+
+                {showLocalModal && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
+                    onClick={() => setShowLocalModal(false)}
+                  >
+                    <motion.div
+                      initial={{ scale: 0.95, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.95, opacity: 0 }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Card className="w-full max-w-2xl shadow-2xl">
+                        <CardHeader className="flex items-center justify-between">
+                          <div>
+                            <CardTitle className="text-lg">Local Session Logs</CardTitle>
+                            <CardDescription className="text-sm">Temporary logs stored in this browser session</CardDescription>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button variant="ghost" size="sm" onClick={() => loadLocalLogs()}>
+                              <RefreshCw className="h-4 w-4 mr-2" />
+                              Refresh
+                            </Button>
+                            <Button variant="destructive" size="sm" onClick={() => setShowLocalClearConfirm(true)}>
+                              <Trash className="h-4 w-4 mr-2" />
+                              Clear All
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          {localLoading ? (
+                            <div className="py-12 flex items-center justify-center">
+                              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            </div>
+                          ) : localLogs.length === 0 ? (
+                            <p className="text-center text-muted-foreground py-8">No local logs found.</p>
+                          ) : (
+                            <div className="overflow-x-auto">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead>Student</TableHead>
+                                    <TableHead>Snack</TableHead>
+                                    <TableHead>Time</TableHead>
+                                    <TableHead className="w-24">Actions</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {localLogs.map((log) => (
+                                    <TableRow key={log.id}>
+                                      <TableCell className="font-medium">{log.student_name}</TableCell>
+                                      <TableCell>{log.snack_name}</TableCell>
+                                      <TableCell className="text-muted-foreground">{new Date(log.timestamp).toLocaleString()}</TableCell>
+                                      <TableCell>
+                                        <div className="flex items-center gap-2">
+                                          <Button size="sm" variant="ghost" onClick={() => setSelectedLocalDelete(log)}>
+                                            <Trash className="h-4 w-4 text-destructive" />
+                                          </Button>
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  </motion.div>
+                )}
 
         <AnimatePresence>
           {showScanner && (
@@ -410,6 +513,137 @@ const SignOut = () => {
             />
           )}
         </AnimatePresence>
+        {selectedLocalDelete && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
+            onClick={() => setSelectedLocalDelete(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Card className="w-full max-w-md shadow-2xl">
+                <CardHeader>
+                  <CardTitle className="text-xl">Delete Local Log</CardTitle>
+                  <CardDescription>Remove this temporary snack log from the session storage.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="p-3 rounded-lg bg-muted/50">
+                      <p className="text-xs text-muted-foreground mb-1">Student Name</p>
+                      <p className="font-semibold text-lg">{selectedLocalDelete.student_name}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted/50">
+                      <p className="text-xs text-muted-foreground mb-1">Snack</p>
+                      <p className="font-semibold text-lg">{selectedLocalDelete.snack_name}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      variant="destructive"
+                      className="flex-1"
+                      onClick={() => {
+                        setLocalDeleting(true);
+                        try {
+                          const stored = JSON.parse(sessionStorage.getItem('simple_logs') || '[]');
+                          const updated = (stored as any[]).filter((s) => s.id !== selectedLocalDelete.id);
+                          sessionStorage.setItem('simple_logs', JSON.stringify(updated));
+                          loadLocalLogs();
+                          window.dispatchEvent(new Event('simple_log_removed'));
+                          toast.success('Local log deleted');
+                          setSelectedLocalDelete(null);
+                        } catch (e) {
+                          console.error('Failed to delete local log', e);
+                          toast.error('Failed to delete local log');
+                        } finally {
+                          setLocalDeleting(false);
+                        }
+                      }}
+                      disabled={localDeleting}
+                    >
+                      {localDeleting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Deleting...
+                        </>
+                      ) : (
+                        'Delete'
+                      )}
+                    </Button>
+                    <Button variant="outline" className="flex-1" onClick={() => setSelectedLocalDelete(null)} disabled={localDeleting}>
+                      Cancel
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </motion.div>
+        )}
+        {showLocalClearConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
+            onClick={() => setShowLocalClearConfirm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Card className="w-full max-w-lg shadow-2xl">
+                <CardHeader>
+                  <CardTitle className="text-xl">Clear All Local Logs</CardTitle>
+                  <CardDescription>This will permanently remove all temporary logs stored in this browser session.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">Are you sure you want to clear all local logs? This action cannot be undone for this session.</p>
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      variant="destructive"
+                      className="flex-1"
+                      onClick={() => {
+                        setLocalClearing(true);
+                        try {
+                          sessionStorage.removeItem('simple_logs');
+                          loadLocalLogs();
+                          window.dispatchEvent(new Event('simple_logs_cleared'));
+                          toast.success('All local logs cleared');
+                          setShowLocalClearConfirm(false);
+                        } catch (err) {
+                          console.error('Error clearing local logs:', err);
+                          toast.error('Failed to clear local logs');
+                        } finally {
+                          setLocalClearing(false);
+                        }
+                      }}
+                      disabled={localClearing}
+                    >
+                      {localClearing ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Clearing...
+                        </>
+                      ) : (
+                        'Yes, clear all'
+                      )}
+                    </Button>
+                    <Button variant="outline" className="flex-1" onClick={() => setShowLocalClearConfirm(false)} disabled={localClearing}>
+                      Cancel
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </motion.div>
+        )}
       </div>
     </div>
   );
