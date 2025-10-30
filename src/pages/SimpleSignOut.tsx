@@ -145,7 +145,7 @@ const SimpleSignOut = () => {
           transition={{ duration: 0.5 }}
           className="max-w-2xl mx-auto"
         >
-          <div className="flex items-center justify-between mb-8">
+          <div className="relative mb-8">
             <div className="text-center">
               <div className="flex items-center justify-center gap-3 mb-4">
                 <h1 className="text-4xl md:text-5xl font-bold">Eastside Eats</h1>
@@ -158,7 +158,7 @@ const SimpleSignOut = () => {
               <p className="text-lg text-muted-foreground">Simple Mode - Quick Snack Logging</p>
             </div>
 
-            <div className="ml-4">
+            <div className="mt-4 md:mt-0 md:absolute md:right-0 md:top-0">
               <Button variant="ghost" size="sm" onClick={() => navigate('/simple/admin')}>
                 Admin
               </Button>
