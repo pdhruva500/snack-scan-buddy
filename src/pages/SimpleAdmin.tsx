@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { RefreshCw, Loader2, Search, Home, Package } from "lucide-react";
+import { RefreshCw, Loader2, Search, Home, Package, Trash } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface SnackLog {
@@ -51,8 +51,14 @@ const SimpleAdmin = () => {
 
     window.addEventListener("simple_log_added", handleLogAdded);
 
+    // Also listen for removals/clears to refresh view
+    window.addEventListener("simple_log_removed", handleLogAdded);
+    window.addEventListener("simple_logs_cleared", handleLogAdded);
+
     return () => {
       window.removeEventListener("simple_log_added", handleLogAdded);
+      window.removeEventListener("simple_log_removed", handleLogAdded);
+      window.removeEventListener("simple_logs_cleared", handleLogAdded);
     };
   }, []);
 
@@ -106,6 +112,22 @@ const SimpleAdmin = () => {
             <Button onClick={() => navigate('/simple')} variant="ghost" size="sm">
               <Home className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Back to Simple</span>
+            </Button>
+            <Button
+              onClick={() => {
+                const ok = window.confirm('Clear all simple logs? This will remove all temporary entries.');
+                if (!ok) return;
+                sessionStorage.removeItem('simple_logs');
+                setLogs([]);
+                setFilteredLogs([]);
+                toast.success('All simple logs cleared');
+                window.dispatchEvent(new Event('simple_logs_cleared'));
+              }}
+              variant="destructive"
+              size="sm"
+            >
+              <Trash className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Clear Logs</span>
             </Button>
           </div>
         </motion.div>
@@ -167,7 +189,8 @@ const SimpleAdmin = () => {
                       <TableRow>
                         <TableHead>Student Name</TableHead>
                         <TableHead>Snack Name</TableHead>
-                        <TableHead>Timestamp</TableHead>
+                                <TableHead>Timestamp</TableHead>
+                                <TableHead className="w-24">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -175,7 +198,35 @@ const SimpleAdmin = () => {
                         <TableRow key={log.id}>
                           <TableCell className="font-medium">{log.student_name}</TableCell>
                           <TableCell>{log.snack_name}</TableCell>
-                          <TableCell className="text-muted-foreground">{formatDate(log.timestamp)}</TableCell>
+                                  <TableCell className="text-muted-foreground">{formatDate(log.timestamp)}</TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => {
+                                          const ok = window.confirm('Delete this log? This cannot be undone.');
+                                          if (!ok) return;
+                                          try {
+                                            const stored = JSON.parse(sessionStorage.getItem('simple_logs') || '[]');
+                                            const updated = (stored as any[]).filter((s) => s.id !== log.id);
+                                            sessionStorage.setItem('simple_logs', JSON.stringify(updated));
+                                            // update UI optimistically
+                                            const newLogs = logs.filter((l) => l.id !== log.id);
+                                            setLogs(newLogs);
+                                            setFilteredLogs(prev => prev.filter(p => p.id !== log.id));
+                                            toast.success('Log deleted');
+                                            window.dispatchEvent(new Event('simple_log_removed'));
+                                          } catch (e) {
+                                            console.error('Failed to delete log', e);
+                                            toast.error('Failed to delete log');
+                                          }
+                                        }}
+                                      >
+                                        <Trash className="h-4 w-4 text-destructive" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
