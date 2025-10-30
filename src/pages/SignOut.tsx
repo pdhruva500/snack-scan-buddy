@@ -142,16 +142,35 @@ const SignOut = () => {
       });
 
       if (logError) {
-        console.error("Error logging snack:", logError);
-        throw logError;
+        console.error("Error logging snack to DB:", logError);
+        // Fallback: store locally in sessionStorage (same format as Simple Mode)
+        try {
+          const existing = JSON.parse(sessionStorage.getItem('simple_logs') || '[]');
+          const newLog = {
+            id: Date.now().toString(),
+            student_name: profile?.full_name || authUser.email || 'Unknown',
+            snack_name: userInput,
+            timestamp: new Date().toISOString(),
+          };
+          existing.push(newLog);
+          sessionStorage.setItem('simple_logs', JSON.stringify(existing));
+          window.dispatchEvent(new Event('simple_log_added'));
+          toast.success('Snack saved locally', { description: `"${userInput}" saved for ${newLog.student_name}` });
+          setManualSnackName('');
+          setTimeout(() => navigate('/'), 1200);
+          return;
+        } catch (err) {
+          console.error('Local fallback failed:', err);
+          throw logError; // rethrow original DB error
+        }
       }
 
       toast.success("Snack logged!", { 
         description: `"${userInput}" has been logged successfully` 
       });
-      
+
       setManualSnackName("");
-      
+
       setTimeout(() => navigate("/"), 1500);
     } catch (err) {
       console.error("Error adding snack:", err);
