@@ -103,9 +103,9 @@ const SimpleAdmin = () => {
               <RefreshCw className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Refresh</span>
             </Button>
-            <Button onClick={() => navigate("/")} variant="ghost" size="sm">
+            <Button onClick={() => navigate('/simple')} variant="ghost" size="sm">
               <Home className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Home</span>
+              <span className="hidden sm:inline">Back to Simple</span>
             </Button>
           </div>
         </motion.div>
