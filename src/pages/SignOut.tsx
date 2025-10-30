@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+// Note: SignOut uses the session-only simple-mode flow (no DB writes/queries)
 import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +23,8 @@ const SignOut = () => {
   const [detectedSnack, setDetectedSnack] = useState<{ id: string; name: string; image?: string; brand?: string } | null>(null);
   const [lunchRestrictionMessage, setLunchRestrictionMessage] = useState<string | null>(null);
   const [manualSnackName, setManualSnackName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [localLogs, setLocalLogs] = useState<any[]>([]);
   const [selectedLocalDelete, setSelectedLocalDelete] = useState<any | null>(null);
   const [localDeleting, setLocalDeleting] = useState(false);
@@ -74,22 +76,11 @@ const SignOut = () => {
         });
         toast.success("Snack detected!", { description: productData.product.product_name });
       } else {
-        // Product not found in food API, fallback to database lookup
-        const { data, error } = await supabase
-          .from("snacks")
-          .select("id, name")
-          .eq("barcode", barcode)
-          .maybeSingle();
-
-        if (error || !data) {
-          toast.error("Barcode not recognized", {
-            description: "Please enter manually or try a different barcode.",
-          });
-          return;
-        }
-
-        setDetectedSnack(data);
-        toast.success("Snack detected!", { description: data.name });
+        // Product not found in food API — do not query the DB here (simple-mode behavior)
+        toast.error("Barcode not recognized", {
+          description: "Please enter manually or try a different barcode.",
+        });
+        return;
       }
     } catch (err) {
       console.error("Error fetching snack:", err);
@@ -109,24 +100,14 @@ const SignOut = () => {
     try {
       const userInput = manualSnackName.trim();
 
-      // Prefer to get user's full name if available, but do not write to DB
-      let studentName = 'Unknown';
-      try {
-        const { data: userData } = await supabase.auth.getUser();
-        const authUser = userData?.user;
-        if (authUser) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('id', authUser.id)
-            .maybeSingle();
-          studentName = profile?.full_name || authUser.email || 'Unknown';
-        }
-      } catch (e) {
-        // ignore profile lookup failures and continue with Unknown/email fallback
-        console.warn('Failed to fetch profile for manual entry:', e);
+      // Use the manually-entered first + last name (simple-mode behavior)
+      if (!firstName.trim() || !lastName.trim()) {
+        toast.error('Please enter first and last name');
+        setIsSubmitting(false);
+        return;
       }
 
+      const studentName = `${firstName.trim()} ${lastName.trim()}`;
       // Save to sessionStorage (same format as Simple Mode)
       const existing = JSON.parse(sessionStorage.getItem('simple_logs') || '[]');
       const newLog = {
@@ -140,7 +121,8 @@ const SignOut = () => {
       window.dispatchEvent(new Event('simple_log_added'));
       toast.success('Snack saved locally', { description: `"${userInput}" saved for ${newLog.student_name}` });
       setManualSnackName('');
-      setTimeout(() => navigate('/'), 1200);
+      setFirstName('');
+      setLastName('');
     } catch (err) {
       console.error('Error adding snack locally:', err);
       toast.error('Failed to add snack. Please try again.');
@@ -154,24 +136,15 @@ const SignOut = () => {
     setIsSubmitting(true);
 
     try {
-      // Instead of writing to the DB, save detected snack to sessionStorage (simple-mode behavior)
-      let studentName = 'Unknown';
-      try {
-        const { data: userData } = await supabase.auth.getUser();
-        const authUser = userData?.user;
-        if (authUser) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('id', authUser.id)
-            .maybeSingle();
-          studentName = profile?.full_name || authUser.email || 'Unknown';
-        }
-      } catch (e) {
-        console.warn('Failed to fetch profile for detected snack:', e);
+      // Use entered first + last name (simple-mode behavior)
+      if (!firstName.trim() || !lastName.trim()) {
+        toast.error('Please enter first and last name');
+        setIsSubmitting(false);
+        return;
       }
 
       try {
+        const studentName = `${firstName.trim()} ${lastName.trim()}`;
         const existing = JSON.parse(sessionStorage.getItem('simple_logs') || '[]');
         const newLog = {
           id: Date.now().toString(),
@@ -185,7 +158,8 @@ const SignOut = () => {
         toast.success('Snack saved locally', { description: `${detectedSnack.name} for ${studentName}` });
         setDetectedSnack(null);
         setShowScanner(false);
-        setTimeout(() => navigate('/'), 1200);
+        setFirstName('');
+        setLastName('');
       } catch (err) {
         console.error('Failed to save detected snack locally:', err);
         toast.error('Failed to log snack. Please try again.');
@@ -265,6 +239,32 @@ const SignOut = () => {
                 </Alert>
               )}
 
+              {/* Name Entry (match Simple Mode) */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">First Name</label>
+                    <Input
+                      placeholder="First name"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="h-12 text-base"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Last Name</label>
+                    <Input
+                      placeholder="Last name"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className="h-12 text-base"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <AnimatePresence mode="wait">
                 {!detectedSnack ? (
                   <motion.div
@@ -317,7 +317,7 @@ const SignOut = () => {
                             variant="outline"
                             className="w-full"
                             size="lg"
-                            disabled={isSubmitting || !manualSnackName.trim()}
+                            disabled={isSubmitting || !manualSnackName.trim() || !firstName.trim() || !lastName.trim()}
                           >
                             {isSubmitting ? (
                               <>
@@ -373,7 +373,7 @@ const SignOut = () => {
                     </div>
 
                     <div className="flex gap-2">
-                      <Button onClick={handleSubmit} disabled={isSubmitting || !!lunchRestrictionMessage} className="flex-1" size="lg" title={lunchRestrictionMessage ?? undefined}>
+                      <Button onClick={handleSubmit} disabled={isSubmitting || !!lunchRestrictionMessage || !firstName.trim() || !lastName.trim()} className="flex-1" size="lg" title={lunchRestrictionMessage ?? undefined}>
                         {isSubmitting ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
