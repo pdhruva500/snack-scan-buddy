@@ -265,6 +265,35 @@ const Index = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.4, duration: 0.6 }}
+          className="text-center mb-16"
+        >
+          <Card className="bg-gradient-to-br from-blue-500/5 to-blue-500/10 border-blue-500/20 hover:shadow-xl transition-all cursor-pointer" onClick={() => window.location.href = '/simple'}>
+            <CardHeader>
+              <div className="h-16 w-16 rounded-full bg-blue-500/20 flex items-center justify-center mb-4 mx-auto">
+                <Zap className="h-8 w-8 text-blue-500" />
+              </div>
+              <CardTitle className="text-2xl">Simple Mode Available</CardTitle>
+              <CardDescription className="text-base">
+                Try our streamlined version for quick tablet-based logging
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground max-w-2xl mx-auto mb-4">
+                Perfect for cafeteria tablets! No login required - just enter your name and scan. 
+                Ideal for testing or as a simplified alternative to the full app.
+              </p>
+              <Button size="lg" variant="outline" className="bg-background hover:bg-accent">
+                Try Simple Mode
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.5, duration: 0.6 }}
           className="text-center"
         >
           <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
