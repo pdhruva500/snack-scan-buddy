@@ -156,14 +156,15 @@ const SimpleSignOut = () => {
                 />
               </div>
               <p className="text-lg text-muted-foreground">Simple Mode - Quick Snack Logging</p>
+              <p className="text-xs md:text-sm text-muted-foreground mt-1">Created by Prasham Dhruva</p>
             </div>
+          </div>
 
-            <div className="absolute right-4 top-4 md:right-6 md:top-6 z-10">
-              <Button variant="ghost" size="sm" onClick={() => navigate('/simple/admin')}>
-                <UserCircle className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Admin</span>
-              </Button>
-            </div>
+          <div className="flex justify-end mb-4">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/simple/admin')}>
+              <UserCircle className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Admin</span>
+            </Button>
           </div>
 
           <Card className="w-full shadow-lg">
