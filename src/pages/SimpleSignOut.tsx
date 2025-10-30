@@ -167,11 +167,18 @@ const SimpleSignOut = () => {
           </div>
 
           <Card className="w-full shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-xl md:text-2xl">Log Your Snack</CardTitle>
-              <CardDescription className="text-sm md:text-base">
-                Enter your name, then scan or enter manually
-              </CardDescription>
+            <CardHeader className="flex items-start justify-between">
+              <div>
+                <CardTitle className="text-xl md:text-2xl">Log Your Snack</CardTitle>
+                <CardDescription className="text-sm md:text-base">
+                  Enter your name, then scan or enter manually
+                </CardDescription>
+              </div>
+              <div className="ml-4 mt-1">
+                <Button variant="ghost" size="sm" onClick={() => navigate('/simple/admin')}>
+                  <UserCircle className="w-5 h-5" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Name Entry */}
