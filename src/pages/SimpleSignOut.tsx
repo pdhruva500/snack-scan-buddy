@@ -176,9 +176,6 @@ const SimpleSignOut = () => {
                 </CardDescription>
               </div>
               <div className="ml-4 mt-1">
-                <Button variant="ghost" size="sm" onClick={() => navigate('/simple/admin')}>
-                  <UserCircle className="w-5 h-5" />
-                </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
