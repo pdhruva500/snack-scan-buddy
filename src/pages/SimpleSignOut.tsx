@@ -94,7 +94,7 @@ const SimpleSignOut = () => {
       >
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70" />
         
-        <div className="relative z-10 w-full max-w-md px-4 py-12">
+  <div className="relative z-10 w-full max-w-4xl mx-auto px-4 py-12">
           <motion.div
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
