@@ -96,8 +96,8 @@ const SimpleSignOut = () => {
             className="text-center text-white mb-8"
           >
             <div className="flex items-center justify-center gap-3 mb-4">
-              <h1 className="text-5xl md:text-6xl font-bold">
-                Simple Mode
+              <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent whitespace-nowrap">
+                Eastside Eats
               </h1>
               <img
                 src="/eaglelogo.png"
