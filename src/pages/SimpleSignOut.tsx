@@ -149,22 +149,22 @@ const SimpleSignOut = () => {
         {/* subtle overlay to ensure text contrast */}
         <div className="absolute inset-0 bg-black/45" />
 
-        {/* Title + Creator credit (match main page) */}
-        <div className="absolute left-4 top-6 md:left-8 md:top-8 text-white z-10">
-          <div className="flex items-center justify-center gap-3 mb-1">
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
+        {/* Title + Creator credit (centered, large like main page) */}
+        <div className="absolute top-12 left-1/2 transform -translate-x-1/2 text-center text-white z-20">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
               Eastside Eats
             </h1>
             <img
               src="/eaglelogo.png"
               alt="Eastside Eats Eagle Logo"
-              className="w-10 h-10 md:w-12 md:h-12"
+              className="w-16 h-16 md:w-20 md:h-20"
             />
           </div>
           <p className="text-xs md:text-sm text-white/60">Created by Prasham Dhruva</p>
         </div>
 
-        <div className="relative min-h-screen flex items-center justify-center px-4 py-12">
+  <div className="relative min-h-screen flex items-start justify-center px-4 pt-36 pb-12">
           {/* Centered Card on top of the full-screen hero */}
           <div className="w-full max-w-3xl mx-auto flex items-center justify-center">
             <Card className="w-full max-w-lg shadow-2xl bg-white/90 dark:bg-black/60 backdrop-blur-sm border border-white/30">
