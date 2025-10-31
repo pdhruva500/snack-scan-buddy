@@ -94,7 +94,7 @@ const SimpleSignOut = () => {
       >
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70" />
         
-  <div className="relative z-10 w-full max-w-4xl mx-auto px-4 py-12">
+  <div className="relative z-10 w-full max-w-md px-4 py-12">
           <motion.div
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -102,16 +102,14 @@ const SimpleSignOut = () => {
             className="text-center text-white mb-8"
           >
             <div className="flex items-center justify-center gap-3 mb-4">
-              <Link to="/" aria-label="Go to homepage" className="inline-block">
-                <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent whitespace-nowrap">
-                  Eastside Eats
-                </h1>
-              </Link>
-              <Link to="/" aria-label="Go to homepage">
+              <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent whitespace-nowrap">
+                Eastside Eats
+              </h1>
+              <Link to="/">
                 <img
                   src="/eaglelogo.png"
                   alt="Eastside Eats Eagle Logo"
-                  className="w-16 h-16 md:w-20 md:h-20 cursor-pointer"
+                  className="w-16 h-16 md:w-20 md:h-20"
                 />
               </Link>
             </div>
