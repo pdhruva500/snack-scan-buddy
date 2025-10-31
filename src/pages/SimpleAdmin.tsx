@@ -1,363 +1,230 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { toast } from "sonner";
-import { RefreshCw, Loader2, Search, Home, Package, Trash } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { UserCircle2, Trash2, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
-interface SnackLog {
+interface LogEntry {
   id: string;
-  student_name: string;
-  snack_name: string;
+  firstName: string;
+  lastName: string;
+  foodItem: string;
   timestamp: string;
+  barcode?: string | null;
 }
 
 const SimpleAdmin = () => {
-  const navigate = useNavigate();
-  const [logs, setLogs] = useState<SnackLog[]>([]);
-  const [filteredLogs, setFilteredLogs] = useState<SnackLog[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedToDelete, setSelectedToDelete] = useState<SnackLog | null>(null);
-  const [deleting, setDeleting] = useState(false);
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const [clearing, setClearing] = useState(false);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [showClearDialog, setShowClearDialog] = useState(false);
 
+  // Load logs from sessionStorage
   const loadLogs = () => {
-    setLoading(true);
-    try {
-      // Load from sessionStorage (memory-only, no database)
-      const storedLogs = JSON.parse(sessionStorage.getItem("simple_logs") || "[]");
-      // Sort by timestamp descending (newest first)
-      const sortedLogs = storedLogs.sort((a: SnackLog, b: SnackLog) => 
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      );
-      setLogs(sortedLogs);
-      setFilteredLogs(sortedLogs);
-    } catch (error) {
-      console.error("Error loading logs:", error);
-      toast.error("Failed to load logs");
-    } finally {
-      setLoading(false);
-    }
+    const storedLogs = JSON.parse(sessionStorage.getItem("simple_logs") || "[]");
+    setLogs(storedLogs.reverse()); // Show newest first
   };
 
   useEffect(() => {
     loadLogs();
 
-    // Listen for custom event from SimpleSignOut when new logs are added
-    const handleLogAdded = () => {
+    // Listen for new log entries
+    const handleLogAdded = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.log("New log added:", customEvent.detail);
       loadLogs();
     };
 
-    window.addEventListener("simple_log_added", handleLogAdded);
+    const handleLogRemoved = () => {
+      loadLogs();
+    };
 
-    // Also listen for removals/clears to refresh view
-    window.addEventListener("simple_log_removed", handleLogAdded);
-    window.addEventListener("simple_logs_cleared", handleLogAdded);
+    const handleLogsCleared = () => {
+      setLogs([]);
+    };
+
+    window.addEventListener("simple_log_added", handleLogAdded);
+    window.addEventListener("simple_log_removed", handleLogRemoved);
+    window.addEventListener("simple_logs_cleared", handleLogsCleared);
 
     return () => {
       window.removeEventListener("simple_log_added", handleLogAdded);
-      window.removeEventListener("simple_log_removed", handleLogAdded);
-      window.removeEventListener("simple_logs_cleared", handleLogAdded);
+      window.removeEventListener("simple_log_removed", handleLogRemoved);
+      window.removeEventListener("simple_logs_cleared", handleLogsCleared);
     };
   }, []);
 
-  useEffect(() => {
-    if (searchTerm.trim() === "") {
-      setFilteredLogs(logs);
-    } else {
-      const filtered = logs.filter(log =>
-        log.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.snack_name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredLogs(filtered);
-    }
-  }, [searchTerm, logs]);
+  const handleDeleteLog = (id: string) => {
+    const updatedLogs = logs.filter((log) => log.id !== id);
+    sessionStorage.setItem("simple_logs", JSON.stringify(updatedLogs.reverse()));
+    setLogs(updatedLogs);
+    window.dispatchEvent(new Event("simple_log_removed"));
+    toast.success("Log entry deleted");
+  };
+
+  const handleClearAll = () => {
+    sessionStorage.removeItem("simple_logs");
+    setLogs([]);
+    setShowClearDialog(false);
+    window.dispatchEvent(new Event("simple_logs_cleared"));
+    toast.success("All logs cleared");
+  };
 
   const formatDate = (timestamp: string) => {
     const date = new Date(timestamp);
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
+    return date.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
       hour12: true,
     });
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 space-y-6">
+      <div className="container mx-auto px-4 py-8">
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+          transition={{ duration: 0.5 }}
         >
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl md:text-4xl font-bold">Eastside Eats</h1>
-              <img
-                src="/eaglelogo.png"
-                alt="Eastside Eats Eagle Logo"
-                className="w-10 h-10 md:w-12 md:h-12"
-              />
-            </div>
-            <p className="text-muted-foreground text-sm md:text-base">Simple Admin - View Snack Logs</p>
+          <div className="mb-6">
+            <Link to="/simple">
+              <Button variant="ghost" size="sm" className="mb-4">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Simple Mode
+              </Button>
+            </Link>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={loadLogs} variant="outline" size="sm">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Refresh</span>
-            </Button>
-            <Button onClick={() => navigate('/simple')} variant="ghost" size="sm">
-              <Home className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Back to Simple</span>
-            </Button>
-            <Button
-              onClick={() => setShowClearConfirm(true)}
-              variant="destructive"
-              size="sm"
-            >
-              <Trash className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Clear Logs</span>
-            </Button>
-          </div>
-        </motion.div>
-        {selectedToDelete && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
-            onClick={() => setSelectedToDelete(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Card className="w-full max-w-md shadow-2xl">
-                <CardHeader>
-                  <CardTitle className="text-xl">Delete Snack Log</CardTitle>
-                  <CardDescription>Remove this temporary snack log from the session storage.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="p-3 rounded-lg bg-muted/50">
-                      <p className="text-xs text-muted-foreground mb-1">Student Name</p>
-                      <p className="font-semibold text-lg">{selectedToDelete.student_name}</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted/50">
-                      <p className="text-xs text-muted-foreground mb-1">Snack</p>
-                      <p className="font-semibold text-lg">{selectedToDelete.snack_name}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      variant="destructive"
-                      className="flex-1"
-                      onClick={async () => {
-                        setDeleting(true);
-                        try {
-                          const stored = JSON.parse(sessionStorage.getItem('simple_logs') || '[]');
-                          const updated = (stored as any[]).filter((s) => s.id !== selectedToDelete.id);
-                          sessionStorage.setItem('simple_logs', JSON.stringify(updated));
-                          // update UI
-                          const newLogs = logs.filter((l) => l.id !== selectedToDelete.id);
-                          setLogs(newLogs);
-                          setFilteredLogs(prev => prev.filter(p => p.id !== selectedToDelete.id));
-                          toast.success('Log deleted');
-                          window.dispatchEvent(new Event('simple_log_removed'));
-                          setSelectedToDelete(null);
-                        } catch (e) {
-                          console.error('Failed to delete simple log', e);
-                          toast.error('Failed to delete log');
-                        } finally {
-                          setDeleting(false);
-                        }
-                      }}
-                      disabled={deleting}
-                    >
-                      {deleting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Deleting...
-                        </>
-                      ) : (
-                        'Delete'
-                      )}
-                    </Button>
-                    <Button variant="outline" className="flex-1" onClick={() => setSelectedToDelete(null)} disabled={deleting}>
-                      Cancel
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </motion.div>
-        )}
-      {showClearConfirm && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
-          onClick={() => setShowClearConfirm(false)}
-        >
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Card className="w-full max-w-lg shadow-2xl">
-              <CardHeader>
-                <CardTitle className="text-xl">Clear All Simple Logs</CardTitle>
-                <CardDescription>This will permanently remove all temporary simple-mode logs from this browser session.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Are you sure you want to clear all simple logs? This action cannot be undone for this session.
-                </p>
-                <div className="flex gap-2 pt-2">
-                  <Button
-                    variant="destructive"
-                    className="flex-1"
-                    onClick={async () => {
-                      setClearing(true);
-                      const prevLogs = logs;
-                      const prevFiltered = filteredLogs;
-                      setLogs([]);
-                      setFilteredLogs([]);
 
-                      try {
-                        sessionStorage.removeItem('simple_logs');
-                        toast.success('All simple logs cleared');
-                        window.dispatchEvent(new Event('simple_logs_cleared'));
-                        setShowClearConfirm(false);
-                      } catch (err) {
-                        console.error('Error clearing simple logs:', err);
-                        setLogs(prevLogs);
-                        setFilteredLogs(prevFiltered);
-                        toast.error('Failed to clear simple logs');
-                      } finally {
-                        setClearing(false);
-                      }
-                    }}
-                    disabled={clearing}
-                  >
-                    {clearing ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Clearing...
-                      </>
-                    ) : (
-                      'Yes, clear all'
-                    )}
-                  </Button>
-                  <Button variant="outline" className="flex-1" onClick={() => setShowClearConfirm(false)} disabled={clearing}>
-                    Cancel
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </motion.div>
-      )}
-
-        {/* Stats Card */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1 }}
-        >
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Logs</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{logs.length}</div>
-              <p className="text-xs text-muted-foreground">All time</p>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-        >
           <Card>
             <CardHeader>
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div>
-                  <CardTitle className="text-lg md:text-xl">All Snack Logs</CardTitle>
-                  <CardDescription className="text-sm">Total logs: {logs.length}</CardDescription>
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-3">
+                  <UserCircle2 className="h-8 w-8 text-primary" />
+                  <div>
+                    <CardTitle className="text-2xl">Simple Admin</CardTitle>
+                    <CardDescription>
+                      View and manage snack logs from this session
+                    </CardDescription>
+                  </div>
                 </div>
-                <div className="relative w-full md:w-64">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search student or snack..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+                {logs.length > 0 && (
+                  <Button
+                    variant="destructive"
+                    onClick={() => setShowClearDialog(true)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Clear All
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent>
-              {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              {logs.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <UserCircle2 className="h-16 w-16 mx-auto mb-4 opacity-20" />
+                  <p className="text-lg">No logs yet</p>
+                  <p className="text-sm">
+                    Logs from the Simple Mode will appear here
+                  </p>
                 </div>
-              ) : filteredLogs.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  {searchTerm ? "No matching logs found." : "No snack logs yet."}
-                </p>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="rounded-md border">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Student Name</TableHead>
-                        <TableHead>Snack Name</TableHead>
-                                <TableHead>Timestamp</TableHead>
-                                <TableHead className="w-24">Actions</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Food Item</TableHead>
+                        <TableHead>Time</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredLogs.map((log) => (
+                      {logs.map((log) => (
                         <TableRow key={log.id}>
-                          <TableCell className="font-medium">{log.student_name}</TableCell>
-                          <TableCell>{log.snack_name}</TableCell>
-                                  <TableCell className="text-muted-foreground">{formatDate(log.timestamp)}</TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center gap-2">
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => setSelectedToDelete(log)}
-                                      >
-                                        <Trash className="h-4 w-4 text-destructive" />
-                                      </Button>
-                                    </div>
-                                  </TableCell>
+                          <TableCell className="font-medium">
+                            {log.firstName} {log.lastName}
+                          </TableCell>
+                          <TableCell>
+                            {log.foodItem}
+                            {log.barcode && (
+                              <span className="text-xs text-muted-foreground ml-2">
+                                (Scanned)
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {formatDate(log.timestamp)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteLog(log.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 </div>
               )}
+
+              <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  <strong>Note:</strong> These logs are stored in your browser's
+                  session storage and will be lost when you close the tab or
+                  browser. This is a simplified mode for quick logging.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </motion.div>
       </div>
+
+      {/* Clear All Confirmation Dialog */}
+      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear all logs?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all {logs.length} log entries from
+              this session. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleClearAll}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Clear All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
