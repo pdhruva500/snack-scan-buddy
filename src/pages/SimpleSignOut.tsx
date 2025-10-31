@@ -149,10 +149,19 @@ const SimpleSignOut = () => {
         {/* subtle overlay to ensure text contrast */}
         <div className="absolute inset-0 bg-black/45" />
 
-        {/* Title + Creator credit (kept visible on the hero) */}
+        {/* Title + Creator credit (match main page) */}
         <div className="absolute left-4 top-6 md:left-8 md:top-8 text-white z-10">
-          <h1 className="text-2xl md:text-4xl font-extrabold drop-shadow-lg">Log Your Snack</h1>
-          <p className="text-sm md:text-base text-white/80 mt-1">Created by Eastside Preparatory School</p>
+          <div className="flex items-center justify-center gap-3 mb-1">
+            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
+              Eastside Eats
+            </h1>
+            <img
+              src="/eaglelogo.png"
+              alt="Eastside Eats Eagle Logo"
+              className="w-10 h-10 md:w-12 md:h-12"
+            />
+          </div>
+          <p className="text-xs md:text-sm text-white/60">Created by Prasham Dhruva</p>
         </div>
 
         <div className="relative min-h-screen flex items-center justify-center px-4 py-12">
