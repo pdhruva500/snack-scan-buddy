@@ -149,13 +149,13 @@ const SimpleSignOut = () => {
         {/* overlay to ensure text contrast */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70" />
 
-        <div className="relative z-10 text-center text-white px-4 max-w-7xl mx-auto">
+  <div className="relative z-10 text-center text-white px-4 max-w-7xl mx-auto py-20 md:py-28">
           {/* Title + Creator credit (styled exactly like homepage) */}
           <motion.div
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3, duration: 0.8 }}
-            className="mb-8"
+            className="mb-12"
           >
             <motion.div
               initial={{ scale: 0.9 }}
@@ -191,9 +191,17 @@ const SimpleSignOut = () => {
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.6, duration: 0.5 }}
-            className="flex items-center justify-center"
+            className="flex items-center justify-center mt-8 md:mt-12"
           >
-            <Card className="w-full max-w-lg shadow-2xl bg-white/95 dark:bg-black/70 backdrop-blur-md border border-white/30">
+            <div className="relative w-full max-w-lg">
+              {/* Admin button: top-right above the dialog box */}
+              <div className="absolute -top-4 right-0 md:-top-5 md:right-2 z-20">
+                <Button onClick={() => navigate('/simple-admin')} variant="ghost" className="text-sm text-white/80">
+                  Admin
+                </Button>
+              </div>
+
+              <Card className="w-full shadow-2xl bg-white/95 dark:bg-black/70 backdrop-blur-md border border-white/30">
                 <CardHeader className="flex items-start justify-between p-6">
                   <div>
                     <CardTitle className="text-2xl md:text-3xl">Log Your Snack</CardTitle>
@@ -353,7 +361,8 @@ const SimpleSignOut = () => {
                 Back to Home
               </Button>
             </CardContent>
-          </Card>
+            </Card>
+          </div>
           </motion.div>
         </div>
       </motion.section>
