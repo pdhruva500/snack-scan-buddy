@@ -181,9 +181,16 @@ const SimpleAdmin = () => {
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6"
         >
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold">Admin Dashboard</h1>
-            <p className="text-muted-foreground text-sm md:text-base">Local snack tracking and analytics</p>
+          <div className="flex items-center gap-3">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold">Admin Dashboard</h1>
+              <p className="text-muted-foreground text-sm md:text-base">Local snack tracking and analytics</p>
+            </div>
+            <img
+              src="/eaglelogo.png"
+              alt="Eastside Eats Eagle Logo"
+              className="w-12 h-12 md:w-16 md:h-16"
+            />
           </div>
           <div className="flex flex-wrap gap-2">
             <Button onClick={loadLogs} variant="outline" size="sm">
