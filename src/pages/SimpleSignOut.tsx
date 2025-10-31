@@ -102,14 +102,18 @@ const SimpleSignOut = () => {
             className="text-center text-white mb-8"
           >
             <div className="flex items-center justify-center gap-3 mb-4">
-              <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent whitespace-nowrap">
-                Eastside Eats
-              </h1>
-              <img
-                src="/eaglelogo.png"
-                alt="Eastside Eats Eagle Logo"
-                className="w-16 h-16 md:w-20 md:h-20"
-              />
+              <Link to="/" aria-label="Go to homepage" className="inline-block">
+                <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent whitespace-nowrap">
+                  Eastside Eats
+                </h1>
+              </Link>
+              <Link to="/" aria-label="Go to homepage">
+                <img
+                  src="/eaglelogo.png"
+                  alt="Eastside Eats Eagle Logo"
+                  className="w-16 h-16 md:w-20 md:h-20 cursor-pointer"
+                />
+              </Link>
             </div>
             <p className="text-lg md:text-xl mb-2 font-light">
               Quick snack logging for tablets
