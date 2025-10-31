@@ -143,23 +143,16 @@ const SimpleSignOut = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
-        className="relative bg-cover bg-center overflow-hidden"
+        className="relative bg-cover bg-center bg-fixed min-h-screen overflow-hidden"
         style={{ backgroundImage: `url(${cafeteriaHero})` }}
       >
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-black/60" />
-        <div className="container mx-auto px-4 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-            {/* Left: image / hero visual */}
-            <div className="relative rounded-lg overflow-hidden shadow-lg h-80 md:h-[420px]">
-              <img src={cafeteriaHero} alt="Cafeteria" className="w-full h-full object-cover brightness-75" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <img src="/eaglelogo.png" alt="Eastside Eats" className="w-40 h-40 md:w-56 md:h-56" />
-              </div>
-            </div>
+        {/* subtle overlay to ensure text contrast */}
+        <div className="absolute inset-0 bg-black/45" />
 
-            {/* Right: Card */}
-            <div className="flex items-center">
-              <Card className="w-full max-w-md shadow-2xl">
+        <div className="relative min-h-screen flex items-center justify-center px-4 py-12">
+          {/* Centered Card on top of the full-screen hero */}
+          <div className="w-full max-w-3xl mx-auto flex items-center justify-center">
+            <Card className="w-full max-w-lg shadow-2xl bg-white/90 dark:bg-black/60 backdrop-blur-sm border border-white/30">
                 <CardHeader className="flex items-start justify-between p-6">
                   <div>
                     <CardTitle className="text-2xl md:text-3xl">Log Your Snack</CardTitle>
@@ -320,7 +313,6 @@ const SimpleSignOut = () => {
               </Button>
             </CardContent>
           </Card>
-            </div>
           </div>
         </div>
       </motion.section>
