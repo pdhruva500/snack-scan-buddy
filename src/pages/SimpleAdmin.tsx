@@ -192,13 +192,7 @@ const SimpleAdmin = () => {
                 </div>
               )}
 
-              <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-                <p className="text-sm text-muted-foreground">
-                  <strong>Note:</strong> These logs are stored in your browser's
-                  local storage and will persist across page refreshes. They
-                  will remain until you clear them with the "Clear All" button.
-                </p>
-              </div>
+              
             </CardContent>
           </Card>
         </motion.div>
