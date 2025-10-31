@@ -139,45 +139,36 @@ const SimpleSignOut = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <motion.div
+      <motion.section
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
-        className="relative h-[420px] bg-cover bg-center flex items-center justify-center overflow-hidden"
+        className="relative bg-cover bg-center overflow-hidden"
         style={{ backgroundImage: `url(${cafeteriaHero})` }}
       >
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 to-black/60" />
-        <motion.div className="relative z-10 text-center text-white px-4 w-full">
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">Eastside Eats</h1>
-            <img src="/eaglelogo.png" alt="Eastside Eats Eagle Logo" className="w-14 h-14 md:w-16 md:h-16" />
-          </div>
-          <p className="text-lg md:text-xl font-light text-white/90">Simple Mode - Quick Snack Logging</p>
-          <p className="text-xs md:text-sm text-white/70 mt-1">Created by Prasham Dhruva</p>
-        </motion.div>
-      </motion.div>
-
-      <div className="container mx-auto px-4 -mt-20 md:-mt-28 pb-12">
-        <div className="max-w-3xl mx-auto">
-          <div className="flex justify-end mb-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/simple/admin')}>
-              <UserCircle className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Admin</span>
-            </Button>
-          </div>
-
-          <Card className="w-full shadow-2xl border-0">
-            <CardHeader className="flex items-start justify-between p-6">
-              <div>
-                <CardTitle className="text-2xl md:text-3xl">Log Your Snack</CardTitle>
-                <CardDescription className="text-sm md:text-base">
-                  Enter your name, then scan or enter manually
-                </CardDescription>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-black/60" />
+        <div className="container mx-auto px-4 py-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            {/* Left: image / hero visual */}
+            <div className="relative rounded-lg overflow-hidden shadow-lg h-80 md:h-[420px]">
+              <img src={cafeteriaHero} alt="Cafeteria" className="w-full h-full object-cover brightness-75" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <img src="/eaglelogo.png" alt="Eastside Eats" className="w-40 h-40 md:w-56 md:h-56" />
               </div>
-              <div className="ml-4 mt-1">
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6 p-6">
+            </div>
+
+            {/* Right: Card */}
+            <div className="flex items-center">
+              <Card className="w-full max-w-md shadow-2xl">
+                <CardHeader className="flex items-start justify-between p-6">
+                  <div>
+                    <CardTitle className="text-2xl md:text-3xl">Log Your Snack</CardTitle>
+                    <CardDescription className="text-sm md:text-base">
+                      Enter your name, then scan or enter manually
+                    </CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6 p-6">
               {/* Name Entry */}
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -329,9 +320,12 @@ const SimpleSignOut = () => {
               </Button>
             </CardContent>
           </Card>
+            </div>
+          </div>
         </div>
+      </motion.section>
 
-        <AnimatePresence>
+      <AnimatePresence>
           {showScanner && (
             <BarcodeScanner
               onDetected={handleBarcodeDetected}
@@ -347,7 +341,6 @@ const SimpleSignOut = () => {
           )}
         </AnimatePresence>
       </div>
-    </div>
   );
 };
 
