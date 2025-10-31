@@ -143,31 +143,57 @@ const SimpleSignOut = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
-        className="relative bg-cover bg-center bg-fixed min-h-screen overflow-hidden"
+        className="relative bg-cover bg-center min-h-screen overflow-hidden flex items-center justify-center"
         style={{ backgroundImage: `url(${cafeteriaHero})` }}
       >
-        {/* subtle overlay to ensure text contrast */}
-        <div className="absolute inset-0 bg-black/45" />
+        {/* overlay to ensure text contrast */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70" />
 
-        {/* Title + Creator credit (centered, large like main page) */}
-        <div className="absolute top-12 left-1/2 transform -translate-x-1/2 text-center text-white z-20">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
-              Eastside Eats
-            </h1>
-            <img
-              src="/eaglelogo.png"
-              alt="Eastside Eats Eagle Logo"
-              className="w-16 h-16 md:w-20 md:h-20"
-            />
-          </div>
-          <p className="text-xs md:text-sm text-white/60">Created by Prasham Dhruva</p>
-        </div>
+        <div className="relative z-10 text-center text-white px-4 max-w-7xl mx-auto">
+          {/* Title + Creator credit (styled exactly like homepage) */}
+          <motion.div
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.8 }}
+            className="mb-8"
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+              className="mb-6"
+            >
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
+                  Eastside Eats
+                </h1>
+                <img
+                  src="/eaglelogo.png"
+                  alt="Eastside Eats Eagle Logo"
+                  className="w-16 h-16 md:w-20 md:h-20"
+                />
+              </div>
 
-  <div className="relative min-h-screen flex items-start justify-center px-4 pt-36 pb-12">
-          {/* Centered Card on top of the full-screen hero */}
-          <div className="w-full max-w-3xl mx-auto flex items-center justify-center">
-            <Card className="w-full max-w-lg shadow-2xl bg-white/90 dark:bg-black/60 backdrop-blur-sm border border-white/30">
+              <p className="text-xl md:text-2xl mb-2 font-light">
+                Track your snacks in seconds
+              </p>
+              <p className="text-sm md:text-base text-white/80 max-w-2xl mx-auto mb-2">
+                Scan barcodes or enter manually
+              </p>
+              <p className="text-xs md:text-sm text-white/60">
+                Created by Prasham Dhruva
+              </p>
+            </motion.div>
+          </motion.div>
+
+          {/* Centered Card below the hero text */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.6, duration: 0.5 }}
+            className="flex items-center justify-center"
+          >
+            <Card className="w-full max-w-lg shadow-2xl bg-white/95 dark:bg-black/70 backdrop-blur-md border border-white/30">
                 <CardHeader className="flex items-start justify-between p-6">
                   <div>
                     <CardTitle className="text-2xl md:text-3xl">Log Your Snack</CardTitle>
@@ -328,7 +354,7 @@ const SimpleSignOut = () => {
               </Button>
             </CardContent>
           </Card>
-          </div>
+          </motion.div>
         </div>
       </motion.section>
 
