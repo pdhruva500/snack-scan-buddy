@@ -40,6 +40,7 @@ const SimpleAdmin = () => {
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [chartData, setChartData] = useState<Array<{ date: string; count: number }>>([]);
+  const [deleteTarget, setDeleteTarget] = useState<LogEntry | null>(null);
 
   // Load logs from localStorage (persist across refreshes)
   const loadLogs = () => {
@@ -327,7 +328,7 @@ const SimpleAdmin = () => {
                           <TableCell>{log.foodItem}{log.barcode && <span className="text-xs text-muted-foreground ml-2">(Scanned)</span>}</TableCell>
                           <TableCell className="text-muted-foreground">{formatDate(log.timestamp)}</TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="sm" onClick={() => handleDeleteLog(log.id)}>
+                            <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(log)}>
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </TableCell>
@@ -362,6 +363,39 @@ const SimpleAdmin = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Single delete confirmation dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this log?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the selected log entry. This action cannot be undone.
+              {deleteTarget && (
+                <div className="mt-2">
+                  <div className="font-medium">{deleteTarget.firstName} {deleteTarget.lastName}</div>
+                  <div className="text-sm text-muted-foreground">{deleteTarget.foodItem}</div>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteTarget(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteTarget) {
+                  handleDeleteLog(deleteTarget.id);
+                }
+                setDeleteTarget(null);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 };

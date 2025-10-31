@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +18,7 @@ const SimpleSignOut = () => {
   const [showScanner, setShowScanner] = useState(false);
   const [detectedBarcode, setDetectedBarcode] = useState<string | null>(null);
   const [detectedProduct, setDetectedProduct] = useState<any>(null);
+  const [confirmation, setConfirmation] = useState<any>(null);
 
   const handleBarcodeDetected = async (barcode: string) => {
     setShowScanner(false);
@@ -67,7 +68,12 @@ const SimpleSignOut = () => {
     // Dispatch custom event so admin page can listen for updates
     window.dispatchEvent(new CustomEvent("simple_log_added", { detail: logEntry }));
 
-    toast.success(`Logged snack for ${firstName} ${lastName}`);
+  toast.success(`Logged snack for ${firstName} ${lastName}`);
+
+  // show a more visible in-page confirmation
+  setConfirmation(logEntry);
+  // auto-hide after 3s
+  setTimeout(() => setConfirmation(null), 3000);
     
     // Reset form
     setFirstName("");
@@ -118,6 +124,21 @@ const SimpleSignOut = () => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.4, duration: 0.6 }}
           >
+            {/* Visible confirmation banner */}
+            {confirmation && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="mb-4 p-3 rounded-lg bg-emerald-600/90 text-white flex items-center justify-between shadow-lg"
+              >
+                <div>
+                  <div className="font-semibold">Logged: {confirmation.firstName} {confirmation.lastName}</div>
+                  <div className="text-sm">{confirmation.foodItem}</div>
+                </div>
+                <div className="text-xs opacity-90">Saved</div>
+              </motion.div>
+            )}
             <Card className="backdrop-blur-sm bg-background/95 shadow-2xl">
               <CardHeader>
                 <CardTitle className="text-2xl">Sign Out a Snack</CardTitle>
