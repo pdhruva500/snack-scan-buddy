@@ -149,6 +149,12 @@ const SimpleSignOut = () => {
         {/* subtle overlay to ensure text contrast */}
         <div className="absolute inset-0 bg-black/45" />
 
+        {/* Title + Creator credit (kept visible on the hero) */}
+        <div className="absolute left-4 top-6 md:left-8 md:top-8 text-white z-10">
+          <h1 className="text-2xl md:text-4xl font-extrabold drop-shadow-lg">Log Your Snack</h1>
+          <p className="text-sm md:text-base text-white/80 mt-1">Created by Eastside Preparatory School</p>
+        </div>
+
         <div className="relative min-h-screen flex items-center justify-center px-4 py-12">
           {/* Centered Card on top of the full-screen hero */}
           <div className="w-full max-w-3xl mx-auto flex items-center justify-center">
