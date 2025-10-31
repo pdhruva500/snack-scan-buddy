@@ -37,9 +37,9 @@ const SimpleAdmin = () => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [showClearDialog, setShowClearDialog] = useState(false);
 
-  // Load logs from sessionStorage
+  // Load logs from localStorage (persist across refreshes)
   const loadLogs = () => {
-    const storedLogs = JSON.parse(sessionStorage.getItem("simple_logs") || "[]");
+    const storedLogs = JSON.parse(localStorage.getItem("simple_logs") || "[]");
     setLogs(storedLogs.reverse()); // Show newest first
   };
 
@@ -74,14 +74,14 @@ const SimpleAdmin = () => {
 
   const handleDeleteLog = (id: string) => {
     const updatedLogs = logs.filter((log) => log.id !== id);
-    sessionStorage.setItem("simple_logs", JSON.stringify(updatedLogs.reverse()));
+    localStorage.setItem("simple_logs", JSON.stringify(updatedLogs.reverse()));
     setLogs(updatedLogs);
     window.dispatchEvent(new Event("simple_log_removed"));
     toast.success("Log entry deleted");
   };
 
   const handleClearAll = () => {
-    sessionStorage.removeItem("simple_logs");
+    localStorage.removeItem("simple_logs");
     setLogs([]);
     setShowClearDialog(false);
     window.dispatchEvent(new Event("simple_logs_cleared"));
@@ -195,8 +195,8 @@ const SimpleAdmin = () => {
               <div className="mt-6 p-4 bg-muted/50 rounded-lg">
                 <p className="text-sm text-muted-foreground">
                   <strong>Note:</strong> These logs are stored in your browser's
-                  session storage and will be lost when you close the tab or
-                  browser. This is a simplified mode for quick logging.
+                  local storage and will persist across page refreshes. They
+                  will remain until you clear them with the "Clear All" button.
                 </p>
               </div>
             </CardContent>

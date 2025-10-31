@@ -50,7 +50,7 @@ const SimpleSignOut = () => {
       return;
     }
 
-    // Store in sessionStorage instead of database
+    // Store in localStorage instead of database so logs persist across refreshes
     const logEntry = {
       id: Date.now().toString(),
       firstName: firstName.trim(),
@@ -60,9 +60,9 @@ const SimpleSignOut = () => {
       barcode: detectedBarcode,
     };
 
-    const existingLogs = JSON.parse(sessionStorage.getItem("simple_logs") || "[]");
+    const existingLogs = JSON.parse(localStorage.getItem("simple_logs") || "[]");
     existingLogs.push(logEntry);
-    sessionStorage.setItem("simple_logs", JSON.stringify(existingLogs));
+    localStorage.setItem("simple_logs", JSON.stringify(existingLogs));
 
     // Dispatch custom event so admin page can listen for updates
     window.dispatchEvent(new CustomEvent("simple_log_added", { detail: logEntry }));
@@ -127,7 +127,6 @@ const SimpleSignOut = () => {
                       <Label htmlFor="firstName">First Name</Label>
                       <Input
                         id="firstName"
-                        placeholder="John"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
                         required
@@ -137,7 +136,7 @@ const SimpleSignOut = () => {
                       <Label htmlFor="lastName">Last Name</Label>
                       <Input
                         id="lastName"
-                        placeholder="Doe"
+                        
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
                         required
