@@ -149,44 +149,17 @@ const SimpleSignOut = () => {
         {/* overlay to ensure text contrast */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70" />
 
-  <div className="relative z-10 text-center text-white px-4 max-w-7xl mx-auto py-20 md:py-28">
-          {/* Title + Creator credit (styled exactly like homepage) */}
-          <motion.div
-            initial={{ y: 30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.3, duration: 0.8 }}
-            className="mb-12"
-          >
-            <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.4, duration: 0.5 }}
-              className="mb-6"
-            >
-              <div className="flex items-center justify-center gap-3 mb-4">
-                <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
-                  Eastside Eats
-                </h1>
-                <img
-                  src="/eaglelogo.png"
-                  alt="Eastside Eats Eagle Logo"
-                  className="w-16 h-16 md:w-20 md:h-20"
-                />
+  <div className="container mx-auto px-4 py-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            {/* Left: image / hero visual */}
+            <div className="relative rounded-lg overflow-hidden shadow-lg h-80 md:h-[420px]">
+              <img src={cafeteriaHero} alt="Cafeteria" className="w-full h-full object-cover brightness-75" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <img src="/eaglelogo.png" alt="Eastside Eats" className="w-40 h-40 md:w-56 md:h-56" />
               </div>
+            </div>
 
-              <p className="text-xl md:text-2xl mb-2 font-light">
-                Track your snacks in seconds
-              </p>
-              <p className="text-sm md:text-base text-white/80 max-w-2xl mx-auto mb-2">
-                Scan barcodes or enter manually
-              </p>
-              <p className="text-xs md:text-sm text-white/60">
-                Created by Prasham Dhruva
-              </p>
-            </motion.div>
-          </motion.div>
-
-          {/* Centered Card below the hero text */}
+            {/* Right: Card */}
           <motion.div
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -365,6 +338,7 @@ const SimpleSignOut = () => {
           </div>
           </motion.div>
         </div>
+      </div>
       </motion.section>
 
       <AnimatePresence>
