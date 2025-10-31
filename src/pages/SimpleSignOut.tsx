@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { motion, AnimatePresence } from "framer-motion";
 import { fetchFoodProduct } from "@/services/foodService";
+import cafeteriaHero from "@/assets/cafeteria-hero.jpg";
 
 const SimpleSignOut = () => {
   const navigate = useNavigate();
@@ -138,28 +139,26 @@ const SimpleSignOut = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 md:py-16">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="max-w-2xl mx-auto"
-        >
-          <div className="relative mb-8 pt-4">
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-3 mb-4">
-                <h1 className="text-4xl md:text-5xl font-bold">Eastside Eats</h1>
-                <img
-                  src="/eaglelogo.png"
-                  alt="Eastside Eats Eagle Logo"
-                  className="w-12 h-12 md:w-16 md:h-16"
-                />
-              </div>
-              <p className="text-lg text-muted-foreground">Simple Mode - Quick Snack Logging</p>
-              <p className="text-xs md:text-sm text-muted-foreground mt-1">Created by Prasham Dhruva</p>
-            </div>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+        className="relative h-[420px] bg-cover bg-center flex items-center justify-center overflow-hidden"
+        style={{ backgroundImage: `url(${cafeteriaHero})` }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-b from-black/50 to-black/60" />
+        <motion.div className="relative z-10 text-center text-white px-4 w-full">
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">Eastside Eats</h1>
+            <img src="/eaglelogo.png" alt="Eastside Eats Eagle Logo" className="w-14 h-14 md:w-16 md:h-16" />
           </div>
+          <p className="text-lg md:text-xl font-light text-white/90">Simple Mode - Quick Snack Logging</p>
+          <p className="text-xs md:text-sm text-white/70 mt-1">Created by Prasham Dhruva</p>
+        </motion.div>
+      </motion.div>
 
+      <div className="container mx-auto px-4 -mt-20 md:-mt-28 pb-12">
+        <div className="max-w-3xl mx-auto">
           <div className="flex justify-end mb-4">
             <Button variant="ghost" size="sm" onClick={() => navigate('/simple/admin')}>
               <UserCircle className="w-4 h-4 mr-2" />
@@ -167,10 +166,10 @@ const SimpleSignOut = () => {
             </Button>
           </div>
 
-          <Card className="w-full shadow-lg">
-            <CardHeader className="flex items-start justify-between">
+          <Card className="w-full shadow-2xl border-0">
+            <CardHeader className="flex items-start justify-between p-6">
               <div>
-                <CardTitle className="text-xl md:text-2xl">Log Your Snack</CardTitle>
+                <CardTitle className="text-2xl md:text-3xl">Log Your Snack</CardTitle>
                 <CardDescription className="text-sm md:text-base">
                   Enter your name, then scan or enter manually
                 </CardDescription>
@@ -178,7 +177,7 @@ const SimpleSignOut = () => {
               <div className="ml-4 mt-1">
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 p-6">
               {/* Name Entry */}
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -330,7 +329,7 @@ const SimpleSignOut = () => {
               </Button>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
 
         <AnimatePresence>
           {showScanner && (
