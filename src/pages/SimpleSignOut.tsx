@@ -4,12 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Camera, UserCircle2, Scan, ArrowLeft } from "lucide-react";
 import cafeteriaHero from "@/assets/cafeteria-hero.jpg";
 import { motion, AnimatePresence } from "framer-motion";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { fetchFoodProduct } from "@/services/foodService";
 import { toast } from "sonner";
+import { isLunchTime, getLunchTimeMessage } from "@/lib/timeRestrictions";
 
 const SimpleSignOut = () => {
   const [firstName, setFirstName] = useState("");
@@ -19,6 +21,18 @@ const SimpleSignOut = () => {
   const [detectedBarcode, setDetectedBarcode] = useState<string | null>(null);
   const [detectedProduct, setDetectedProduct] = useState<any>(null);
   const [confirmation, setConfirmation] = useState<any>(null);
+  const [lunchRestrictionMessage, setLunchRestrictionMessage] = useState<string | null>(null);
+
+  // Update lunch restriction message every minute
+  useEffect(() => {
+    const updateLunchStatus = () => {
+      setLunchRestrictionMessage(isLunchTime() ? getLunchTimeMessage() : null);
+    };
+
+    updateLunchStatus();
+    const interval = setInterval(updateLunchStatus, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleBarcodeDetected = async (barcode: string) => {
     setShowScanner(false);
@@ -105,14 +119,16 @@ const SimpleSignOut = () => {
               <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent whitespace-nowrap">
                 Eastside Eats
               </h1>
-              <img
-                src="/eaglelogo.png"
-                alt="Eastside Eats Eagle Logo"
-                className="w-16 h-16 md:w-20 md:h-20"
-              />
+              <Link to="/">
+                <img
+                  src="/eaglelogo.png"
+                  alt="Eastside Eats Eagle Logo"
+                  className="w-16 h-16 md:w-20 md:h-20"
+                />
+              </Link>
             </div>
             <p className="text-lg md:text-xl mb-2 font-light">
-              Barcode snack sign-Out or manual entry
+              Quick snack logging for tablets
             </p>
             <p className="text-xs md:text-sm text-white/60">
               Created by Prasham Dhruva
@@ -147,6 +163,11 @@ const SimpleSignOut = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                {lunchRestrictionMessage && (
+                  <Alert className="mb-4">
+                    <AlertDescription>{lunchRestrictionMessage}</AlertDescription>
+                  </Alert>
+                )}
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -185,7 +206,8 @@ const SimpleSignOut = () => {
                         variant="outline"
                         size="icon"
                         onClick={() => setShowScanner(true)}
-                        title="Scan Barcode"
+                        disabled={!!lunchRestrictionMessage}
+                        title={lunchRestrictionMessage ?? "Scan Barcode"}
                       >
                         <Scan className="h-4 w-4" />
                       </Button>
@@ -197,7 +219,13 @@ const SimpleSignOut = () => {
                     )}
                   </div>
 
-                  <Button type="submit" className="w-full" size="lg">
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    size="lg"
+                    disabled={!!lunchRestrictionMessage}
+                    title={lunchRestrictionMessage ?? undefined}
+                  >
                     Submit
                   </Button>
                 </form>
@@ -232,6 +260,7 @@ const SimpleSignOut = () => {
           <BarcodeScanner
             onDetected={handleBarcodeDetected}
             onClose={() => setShowScanner(false)}
+            disabled={!!lunchRestrictionMessage}
           />
         )}
       </AnimatePresence>
