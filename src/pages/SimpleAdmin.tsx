@@ -32,6 +32,7 @@ interface LogEntry {
   foodItem: string;
   timestamp: string;
   barcode?: string | null;
+  crossedOut?: boolean;
 }
 
 const SimpleAdmin = () => {
@@ -40,7 +41,7 @@ const SimpleAdmin = () => {
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [chartData, setChartData] = useState<Array<{ date: string; count: number }>>([]);
-  const [deleteTarget, setDeleteTarget] = useState<LogEntry | null>(null);
+  // (no permanent deletes — we toggle a crossedOut flag instead)
 
   // Load logs from localStorage (persist across refreshes)
   const loadLogs = () => {
@@ -111,14 +112,20 @@ const SimpleAdmin = () => {
     );
   }, [searchTerm, logs]);
 
-  const handleDeleteLog = (id: string) => {
-  const updatedLogs = logs.filter((log) => log.id !== id);
-  localStorage.setItem("simple_logs", JSON.stringify(updatedLogs.slice().reverse()));
-  setLogs(updatedLogs);
-  setFilteredLogs((prev) => prev.filter((l) => l.id !== id));
-  generateChartData(updatedLogs);
-  window.dispatchEvent(new Event("simple_log_removed"));
-  toast.success("Log entry deleted");
+  const handleToggleCrossOut = (id: string) => {
+    const updatedLogs = logs.map((log) => (log.id === id ? { ...log, crossedOut: !log.crossedOut } : log));
+    // save in storage in original order (oldest-first)
+    localStorage.setItem("simple_logs", JSON.stringify(updatedLogs.slice().reverse()));
+    setLogs(updatedLogs);
+    setFilteredLogs((prev) => prev.map((l) => (l.id === id ? { ...l, crossedOut: !l.crossedOut } : l)));
+    generateChartData(updatedLogs);
+    window.dispatchEvent(new Event("simple_log_removed"));
+    const changed = updatedLogs.find((l) => l.id === id)?.crossedOut;
+    if (changed) {
+      toast.success("Log crossed out");
+    } else {
+      toast.success("Cross out undone");
+    }
   };
 
   const handleClearAll = () => {
@@ -324,13 +331,19 @@ const SimpleAdmin = () => {
                     <TableBody>
                       {filteredLogs.map((log) => (
                         <TableRow key={log.id}>
-                          <TableCell className="font-medium">{log.firstName} {log.lastName}</TableCell>
-                          <TableCell>{log.foodItem}{log.barcode && <span className="text-xs text-muted-foreground ml-2">(Scanned)</span>}</TableCell>
-                          <TableCell className="text-muted-foreground">{formatDate(log.timestamp)}</TableCell>
+                          <TableCell className={`font-medium ${log.crossedOut ? 'line-through text-muted-foreground opacity-70' : ''}`}>{log.firstName} {log.lastName}</TableCell>
+                          <TableCell className={`${log.crossedOut ? 'line-through text-muted-foreground opacity-70' : ''}`}>{log.foodItem}{log.barcode && <span className="text-xs text-muted-foreground ml-2">(Scanned)</span>}</TableCell>
+                          <TableCell className={`text-muted-foreground ${log.crossedOut ? 'line-through opacity-70' : ''}`}>{formatDate(log.timestamp)}</TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(log)}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                            {!log.crossedOut ? (
+                              <Button variant="ghost" size="sm" onClick={() => handleToggleCrossOut(log.id)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            ) : (
+                              <Button variant="ghost" size="sm" onClick={() => handleToggleCrossOut(log.id)}>
+                                <RefreshCw className="h-4 w-4 text-primary" />
+                              </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -364,37 +377,7 @@ const SimpleAdmin = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Single delete confirmation dialog */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this log?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the selected log entry. This action cannot be undone.
-              {deleteTarget && (
-                <div className="mt-2">
-                  <div className="font-medium">{deleteTarget.firstName} {deleteTarget.lastName}</div>
-                  <div className="text-sm text-muted-foreground">{deleteTarget.foodItem}</div>
-                </div>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeleteTarget(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (deleteTarget) {
-                  handleDeleteLog(deleteTarget.id);
-                }
-                setDeleteTarget(null);
-              }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* single-delete confirmation removed — we use cross-out toggle instead */}
 
     </div>
   );
