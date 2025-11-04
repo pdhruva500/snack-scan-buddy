@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Camera, UserCircle2, Scan } from "lucide-react";
+import { Camera, UserCircle2, Scan, ArrowLeft } from "lucide-react";
 import cafeteriaHero from "@/assets/cafeteria-hero.jpg";
 import { motion, AnimatePresence } from "framer-motion";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
@@ -205,13 +205,22 @@ const SimpleSignOut = () => {
                 </form>
 
                 <div className="mt-6 pt-6 border-t text-center">
-                  <Link 
-                    to="/simple-admin" 
-                    className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    <UserCircle2 className="h-4 w-4" />
-                    Admin View
-                  </Link>
+                  <div className="flex items-center justify-center gap-4">
+                    <Link
+                      to="/"
+                      className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      Back
+                    </Link>
+                    <Link 
+                      to="/simple-admin" 
+                      className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <UserCircle2 className="h-4 w-4" />
+                      Admin View
+                    </Link>
+                  </div>
                 </div>
               </CardContent>
             </Card>

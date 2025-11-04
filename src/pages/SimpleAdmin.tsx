@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { UserCircle2, Trash2, ArrowLeft, Download, RefreshCw, Search, Package, Users, TrendingUp } from "lucide-react";
+import { UserCircle2, Trash2, ArrowLeft, Download, RefreshCw, Search, Package, Users, TrendingUp, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import {
@@ -337,7 +337,7 @@ const SimpleAdmin = () => {
                           <TableCell className="text-right">
                             {!log.crossedOut ? (
                               <Button variant="ghost" size="sm" onClick={() => handleToggleCrossOut(log.id)}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
+                                <X className="h-4 w-4 text-destructive" />
                               </Button>
                             ) : (
                               <Button variant="ghost" size="sm" onClick={() => handleToggleCrossOut(log.id)}>
