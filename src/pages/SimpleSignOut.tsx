@@ -105,13 +105,11 @@ const SimpleSignOut = () => {
               <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent whitespace-nowrap">
                 Eastside Eats
               </h1>
-              <Link to="/">
-                <img
-                  src="/eaglelogo.png"
-                  alt="Eastside Eats Eagle Logo"
-                  className="w-16 h-16 md:w-20 md:h-20"
-                />
-              </Link>
+              <img
+                src="/eaglelogo.png"
+                alt="Eastside Eats Eagle Logo"
+                className="w-16 h-16 md:w-20 md:h-20"
+              />
             </div>
             <p className="text-lg md:text-xl mb-2 font-light">
               Quick snack logging for tablets
