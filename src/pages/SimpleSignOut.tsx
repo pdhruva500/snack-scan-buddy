@@ -112,7 +112,7 @@ const SimpleSignOut = () => {
               />
             </div>
             <p className="text-lg md:text-xl mb-2 font-light">
-              Barcode Snack Sign-Out
+              Barcode snack sign-Out or manual entry
             </p>
             <p className="text-xs md:text-sm text-white/60">
               Created by Prasham Dhruva
