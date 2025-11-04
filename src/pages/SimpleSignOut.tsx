@@ -205,7 +205,7 @@ const SimpleSignOut = () => {
                 </form>
 
                 <div className="mt-6 pt-6 border-t text-center">
-                  <div className="flex items-center justify-center gap-4">
+                  <div className="flex items-center justify-center gap-8">
                     <Link
                       to="/"
                       className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"

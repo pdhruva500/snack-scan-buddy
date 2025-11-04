@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { UserCircle2, Trash2, ArrowLeft, Download, RefreshCw, Search, Package, Users, TrendingUp, X } from "lucide-react";
+import { UserCircle2, Trash2, ArrowLeft, Download, RefreshCw, Search, Package, Users, TrendingUp, Strikethrough } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import {
@@ -120,12 +120,7 @@ const SimpleAdmin = () => {
     setFilteredLogs((prev) => prev.map((l) => (l.id === id ? { ...l, crossedOut: !l.crossedOut } : l)));
     generateChartData(updatedLogs);
     window.dispatchEvent(new Event("simple_log_removed"));
-    const changed = updatedLogs.find((l) => l.id === id)?.crossedOut;
-    if (changed) {
-      toast.success("Log crossed out");
-    } else {
-      toast.success("Cross out undone");
-    }
+    // No toasts for cross-out/undo — visual only
   };
 
   const handleClearAll = () => {
@@ -337,7 +332,7 @@ const SimpleAdmin = () => {
                           <TableCell className="text-right">
                             {!log.crossedOut ? (
                               <Button variant="ghost" size="sm" onClick={() => handleToggleCrossOut(log.id)}>
-                                <X className="h-4 w-4 text-destructive" />
+                                <Strikethrough className="h-4 w-4 text-destructive" />
                               </Button>
                             ) : (
                               <Button variant="ghost" size="sm" onClick={() => handleToggleCrossOut(log.id)}>
