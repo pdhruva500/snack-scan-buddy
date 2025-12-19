@@ -11,7 +11,6 @@ import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import SimpleSignOut from "./pages/SimpleSignOut";
 import SimpleAdmin from "./pages/SimpleAdmin";
-import PhysicalScanner from "./pages/PhysicalScanner";
 
 
 const queryClient = new QueryClient();
@@ -28,7 +27,6 @@ const App = () => (
           <Route path="/sign-out" element={<SignOut />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/physical-scanner" element={<PhysicalScanner />} />
           <Route path="/simple" element={<SimpleSignOut />} />
           <Route path="/simple-admin" element={<SimpleAdmin />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
