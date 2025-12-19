@@ -8,9 +8,11 @@ import { Camera, Shield, Zap, Loader2, Scan, BarChart3 } from "lucide-react";
 import cafeteriaHero from "@/assets/cafeteria-hero.jpg";
 import { motion, AnimatePresence } from "framer-motion";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
+import { PhysicalScannerIndicator } from "@/components/PhysicalScannerIndicator";
 import { FoodItemDisplay, FoodItemSkeleton } from "@/components/FoodItemDisplay";
 import { fetchFoodProduct } from "@/services/foodService";
 import { isLunchTime, getLunchTimeMessage } from "@/lib/timeRestrictions";
+import { usePhysicalBarcodeScanner } from "@/hooks/usePhysicalBarcodeScanner";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -18,6 +20,7 @@ const Index = () => {
   const [showScanner, setShowScanner] = useState(false);
   const [scannedProduct, setScannedProduct] = useState<any>(null);
   const [isLoadingProduct, setIsLoadingProduct] = useState(false);
+  const [lastPhysicalScan, setLastPhysicalScan] = useState<string>("");
 
   useEffect(() => {
     if (!loading && !user) {
@@ -44,6 +47,37 @@ const Index = () => {
     }
   };
 
+  // Handle physical barcode scanner input
+  const handlePhysicalBarcodeDetected = async (barcode: string) => {
+    console.log("Physical scanner detected barcode:", barcode);
+    setLastPhysicalScan(barcode);
+    
+    // Use the same handler as the camera scanner
+    setIsLoadingProduct(true);
+    
+    try {
+      const productData = await fetchFoodProduct(barcode);
+      if (productData && productData.product) {
+        setScannedProduct(productData.product);
+      } else {
+        alert("Product not found. Please try another barcode.");
+      }
+    } catch (error) {
+      console.error("Error fetching product:", error);
+      alert("Failed to fetch product information.");
+    } finally {
+      setIsLoadingProduct(false);
+    }
+  };
+
+  // Enable physical barcode scanner when user is logged in
+  usePhysicalBarcodeScanner({
+    onDetected: handlePhysicalBarcodeDetected,
+    enabled: !!user && !loading,
+    minLength: 5, // Minimum barcode length
+    timeout: 100, // ms between characters
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -57,6 +91,17 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      
+      {/* Physical Scanner Indicator */}
+      <AnimatePresence>
+        {user && !loading && (
+          <PhysicalScannerIndicator 
+            isActive={true} 
+            lastScan={lastPhysicalScan}
+          />
+        )}
+      </AnimatePresence>
+      
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
