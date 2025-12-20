@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -96,8 +96,6 @@ const SimpleSignOut = () => {
     setDetectedBarcode(null);
     setDetectedProduct(null);
   };
-
-  const navigate = useNavigate();
 
   // Keep the form-based UI below; scanner modal controlled by `showScanner`.
   return (
@@ -208,7 +206,7 @@ const SimpleSignOut = () => {
                         type="button"
                         variant="outline"
                         size="icon"
-                        onClick={() => navigate("/simple-scan")}
+                        onClick={() => setShowScanner(true)}
                         disabled={!!lunchRestrictionMessage}
                         title={lunchRestrictionMessage ?? "Scan Barcode"}
                       >
@@ -242,20 +240,13 @@ const SimpleSignOut = () => {
                       <ArrowLeft className="h-4 w-4" />
                       Back
                     </Link>
-                      <Link
-                        to="/simple-scan"
-                        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        <Scan className="h-4 w-4" />
-                        Scan Snack
-                      </Link>
-                      <Link 
-                        to="/simple-admin" 
-                        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        <UserCircle2 className="h-4 w-4" />
-                        Admin View
-                      </Link>
+                    <Link 
+                      to="/simple-admin" 
+                      className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <UserCircle2 className="h-4 w-4" />
+                      Admin View
+                    </Link>
                   </div>
                 </div>
               </CardContent>

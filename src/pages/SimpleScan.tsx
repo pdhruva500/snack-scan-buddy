@@ -195,5 +195,3 @@ const SimpleScan = () => {
 };
 
 export default SimpleScan;
-
-print(hello hello)
