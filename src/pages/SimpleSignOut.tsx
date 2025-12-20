@@ -255,6 +255,12 @@ const SimpleSignOut = () => {
                     Back to Home
                   </Button>
                 </Link>
+                <Link to="/simple-scan">
+                  <Button variant="default" size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
+                    <Scan className="mr-2 h-4 w-4" />
+                    Scan Snack
+                  </Button>
+                </Link>
                 <Link to="/simple-admin">
                   <Button variant="outline" size="sm" className="bg-white/10 text-white border-white/20 hover:bg-white/20">
                     <UserCircle2 className="mr-2 h-4 w-4" />
