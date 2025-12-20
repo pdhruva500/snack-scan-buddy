@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -96,6 +96,8 @@ const SimpleSignOut = () => {
     setDetectedBarcode(null);
     setDetectedProduct(null);
   };
+
+  const navigate = useNavigate();
 
   // Keep the form-based UI below; scanner modal controlled by `showScanner`.
   return (
@@ -206,7 +208,7 @@ const SimpleSignOut = () => {
                         type="button"
                         variant="outline"
                         size="icon"
-                        onClick={() => setShowScanner(true)}
+                        onClick={() => navigate("/simple-scan")}
                         disabled={!!lunchRestrictionMessage}
                         title={lunchRestrictionMessage ?? "Scan Barcode"}
                       >
