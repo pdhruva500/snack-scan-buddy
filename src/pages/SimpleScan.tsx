@@ -195,4 +195,3 @@ const SimpleScan = () => {
 };
 
 export default SimpleScan;
-

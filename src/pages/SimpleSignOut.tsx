@@ -129,7 +129,6 @@ const SimpleSignOut = () => {
     setDetectedBarcode(null);
     setDetectedProduct(null);
   };
-
   const navigate = useNavigate();
 
   // Keep the form-based UI below; scanner modal controlled by `showScanner`.
@@ -275,20 +274,13 @@ const SimpleSignOut = () => {
                       <ArrowLeft className="h-4 w-4" />
                       Back
                     </Link>
-                      <Link
-                        to="/simple-scan"
-                        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        <Scan className="h-4 w-4" />
-                        Scan Snack
-                      </Link>
-                      <Link 
-                        to="/simple-admin" 
-                        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        <UserCircle2 className="h-4 w-4" />
-                        Admin View
-                      </Link>
+                    <Link 
+                      to="/simple-admin" 
+                      className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <UserCircle2 className="h-4 w-4" />
+                      Admin View
+                    </Link>
                   </div>
                 </div>
               </CardContent>
