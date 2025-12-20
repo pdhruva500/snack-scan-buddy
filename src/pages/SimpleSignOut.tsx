@@ -7,8 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Camera, UserCircle2, Scan, ArrowLeft } from "lucide-react";
 import cafeteriaHero from "@/assets/cafeteria-hero.jpg";
-import { motion, AnimatePresence } from "framer-motion";
-import { BarcodeScanner } from "@/components/BarcodeScanner";
+import { motion } from "framer-motion";
+import { usePhysicalBarcodeScanner } from "@/hooks/usePhysicalBarcodeScanner";
 import { fetchFoodProduct } from "@/services/foodService";
 import { toast } from "sonner";
 import { isLunchTime, getLunchTimeMessage } from "@/lib/timeRestrictions";
@@ -17,11 +17,12 @@ const SimpleSignOut = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [foodItem, setFoodItem] = useState("");
-  const [showScanner, setShowScanner] = useState(false);
   const [detectedBarcode, setDetectedBarcode] = useState<string | null>(null);
   const [detectedProduct, setDetectedProduct] = useState<any>(null);
   const [confirmation, setConfirmation] = useState<any>(null);
   const [lunchRestrictionMessage, setLunchRestrictionMessage] = useState<string | null>(null);
+  const [lastPhysicalScan, setLastPhysicalScan] = useState<string>("");
+  const [scanCount, setScanCount] = useState(0);
 
   // Update lunch restriction message every minute
   useEffect(() => {
@@ -35,7 +36,6 @@ const SimpleSignOut = () => {
   }, []);
 
   const handleBarcodeDetected = async (barcode: string) => {
-    setShowScanner(false);
     setDetectedBarcode(barcode);
     
     try {
@@ -56,6 +56,39 @@ const SimpleSignOut = () => {
       setDetectedProduct(null);
     }
   };
+
+  // Handle physical barcode scanner input (keyboard-style scanners)
+  const handlePhysicalBarcodeDetected = async (barcode: string) => {
+    console.log("Physical scanner detected barcode:", barcode);
+    setLastPhysicalScan(barcode);
+    setScanCount(prev => prev + 1);
+    setDetectedBarcode(barcode);
+
+    try {
+      const productData = await fetchFoodProduct(barcode);
+      if (productData && productData.product && productData.product.product_name) {
+        setDetectedProduct(productData.product);
+        setFoodItem(productData.product.product_name);
+        toast.success(`Detected: ${productData.product.product_name}`);
+      } else {
+        toast.error("Product not found. Please enter manually.");
+        setDetectedBarcode(null);
+        setDetectedProduct(null);
+      }
+    } catch (error) {
+      console.error("Error fetching product:", error);
+      toast.error("Failed to fetch product information.");
+      setDetectedBarcode(null);
+      setDetectedProduct(null);
+    }
+  };
+
+  usePhysicalBarcodeScanner({
+    onDetected: handlePhysicalBarcodeDetected,
+    enabled: !lunchRestrictionMessage,
+    minLength: 5,
+    timeout: 100,
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -264,16 +297,7 @@ const SimpleSignOut = () => {
         </div>
       </motion.div>
 
-      {/* Barcode Scanner Modal */}
-      <AnimatePresence>
-        {showScanner && (
-          <BarcodeScanner
-            onDetected={handleBarcodeDetected}
-            onClose={() => setShowScanner(false)}
-            disabled={!!lunchRestrictionMessage}
-          />
-        )}
-      </AnimatePresence>
+      {/* Camera scanner moved to /simple-scan; physical scanner fills form directly. */}
     </div>
   );
 };
