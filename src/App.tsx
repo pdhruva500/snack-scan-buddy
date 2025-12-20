@@ -11,7 +11,6 @@ import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import SimpleSignOut from "./pages/SimpleSignOut";
 import SimpleAdmin from "./pages/SimpleAdmin";
-import PhysicalScanner from "./pages/PhysicalScanner";
 import SimpleScan from "./pages/SimpleScan";
 
 
