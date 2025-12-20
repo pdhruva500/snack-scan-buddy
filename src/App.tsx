@@ -29,7 +29,6 @@ const App = () => (
           <Route path="/sign-out" element={<SignOut />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/physical-scanner" element={<PhysicalScanner />} />
           <Route path="/simple" element={<SimpleSignOut />} />
           <Route path="/simple-scan" element={<SimpleScan />} />
           <Route path="/simple-admin" element={<SimpleAdmin />} />

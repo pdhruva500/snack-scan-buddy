@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Camera, Shield, Zap, Loader2, Scan, BarChart3, Wifi } from "lucide-react";
+import { Camera, Shield, Zap, Loader2, Scan, BarChart3 } from "lucide-react";
 import cafeteriaHero from "@/assets/cafeteria-hero.jpg";
 import { motion, AnimatePresence } from "framer-motion";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
@@ -130,17 +130,6 @@ const Index = () => {
                 </Button>
               </Link>
             )}
-
-            <Link to="/physical-scanner">
-              <Button 
-                size="lg" 
-                variant="outline"
-                className="bg-white/10 text-white border-white hover:bg-white/20 hover:scale-105 transition-transform backdrop-blur-sm"
-              >
-                <Wifi className="mr-2 h-5 w-5" />
-                Physical Scanner
-              </Button>
-            </Link>
 
             <Link to="/dashboard">
               <Button size="lg" variant="outline"className="bg-white/10 text-white border-white hover:bg-white/20 hover:scale-105 transition-transform backdrop-blur-sm">
