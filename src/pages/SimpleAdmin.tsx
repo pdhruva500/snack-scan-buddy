@@ -36,6 +36,33 @@ interface LogEntry {
 }
 
 const SimpleAdmin = () => {
+  const [authorized, setAuthorized] = useState<boolean>(false);
+  const [password, setPassword] = useState("");
+  const ADMIN_KEY = "simple_admin_auth";
+
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem(ADMIN_KEY);
+      if (stored === "1") setAuthorized(true);
+    } catch (e) {
+      console.error("Failed to read admin auth:", e);
+    }
+  }, []);
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password === "1234") {
+      try {
+        sessionStorage.setItem(ADMIN_KEY, "1");
+      } catch {}
+      setAuthorized(true);
+      setPassword("");
+      toast.success("Authorized");
+    } else {
+      toast.error("Incorrect password");
+      setPassword("");
+    }
+  };
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [filteredLogs, setFilteredLogs] = useState<LogEntry[]>([]);
   const [showClearDialog, setShowClearDialog] = useState(false);
@@ -69,6 +96,8 @@ const SimpleAdmin = () => {
   };
 
   useEffect(() => {
+    if (!authorized) return;
+
     loadLogs();
 
     // Listen for new log entries
@@ -95,7 +124,7 @@ const SimpleAdmin = () => {
       window.removeEventListener("simple_log_removed", handleLogRemoved);
       window.removeEventListener("simple_logs_cleared", handleLogsCleared);
     };
-  }, []);
+  }, [authorized]);
 
   useEffect(() => {
     // filter by search term
@@ -177,6 +206,36 @@ const SimpleAdmin = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {!authorized && (
+        <div className="container mx-auto px-4 py-20 flex items-center justify-center">
+          <Card className="max-w-md w-full">
+            <CardHeader>
+              <CardTitle>Admin Login</CardTitle>
+              <CardDescription>Enter password to view snack logs</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                <div>
+                  <input
+                    type="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="input w-full"
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Link to="/">
+                    <Button variant="ghost">Back</Button>
+                  </Link>
+                  <Button type="submit">Unlock</Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+      {authorized && (
       <div className="container mx-auto px-4 py-8">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -350,9 +409,8 @@ const SimpleAdmin = () => {
             </Card>
           </motion.div>
         </div>
-
-        
       </div>
+      )}
 
       {/* Clear All Confirmation Dialog */}
       <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>

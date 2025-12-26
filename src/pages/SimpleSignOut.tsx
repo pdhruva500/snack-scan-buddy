@@ -303,11 +303,14 @@ const SimpleSignOut = () => {
                 <div className="mt-6 pt-6 border-t text-center">
                   <div className="flex items-center justify-center gap-8">
                     <Link
-                      to="/"
+                      to="/main"
                       className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
                     >
                       <ArrowLeft className="h-4 w-4" />
                       Back
+                    </Link>
+                    <Link to="/main">
+                      <Button variant="ghost" size="sm">Main Page</Button>
                     </Link>
                     <Link 
                       to="/simple-admin" 
