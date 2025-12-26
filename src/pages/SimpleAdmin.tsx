@@ -211,6 +211,67 @@ const SimpleAdmin = () => {
           </div>
         </motion.div>
 
+        {/* Move the full logs table to the top for cafeteria visibility */}
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="mb-6">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                  <CardTitle className="text-lg md:text-xl">All Snack Logs</CardTitle>
+                  <CardDescription className="text-sm">Total logs: {logs.length}</CardDescription>
+                </div>
+                <div className="relative w-full md:w-64">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <input
+                    placeholder="Search name or snack..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 input bg-background border"
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {logs.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No snack logs yet.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Food Item</TableHead>
+                        <TableHead>Time</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredLogs.map((log) => (
+                        <TableRow key={log.id}>
+                          <TableCell className={`font-medium ${log.crossedOut ? 'line-through text-muted-foreground opacity-70' : ''}`}>{log.firstName} {log.lastName}</TableCell>
+                          <TableCell className={`${log.crossedOut ? 'line-through text-muted-foreground opacity-70' : ''}`}>{log.foodItem}{log.barcode && <span className="text-xs text-muted-foreground ml-2">(Scanned)</span>}</TableCell>
+                          <TableCell className={`text-muted-foreground ${log.crossedOut ? 'line-through opacity-70' : ''}`}>{formatDate(log.timestamp)}</TableCell>
+                          <TableCell className="text-right">
+                            {!log.crossedOut ? (
+                              <Button variant="ghost" size="sm" onClick={() => handleToggleCrossOut(log.id)}>
+                                <Strikethrough className="h-4 w-4 text-destructive" />
+                              </Button>
+                            ) : (
+                              <Button variant="ghost" size="sm" onClick={() => handleToggleCrossOut(log.id)}>
+                                <RefreshCw className="h-4 w-4 text-primary" />
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
         <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -290,65 +351,7 @@ const SimpleAdmin = () => {
           </motion.div>
         </div>
 
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div>
-                  <CardTitle className="text-lg md:text-xl">All Snack Logs</CardTitle>
-                  <CardDescription className="text-sm">Total logs: {logs.length}</CardDescription>
-                </div>
-                <div className="relative w-full md:w-64">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <input
-                    placeholder="Search name or snack..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 input bg-background border"
-                  />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {logs.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">No snack logs yet.</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Food Item</TableHead>
-                        <TableHead>Time</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredLogs.map((log) => (
-                        <TableRow key={log.id}>
-                          <TableCell className={`font-medium ${log.crossedOut ? 'line-through text-muted-foreground opacity-70' : ''}`}>{log.firstName} {log.lastName}</TableCell>
-                          <TableCell className={`${log.crossedOut ? 'line-through text-muted-foreground opacity-70' : ''}`}>{log.foodItem}{log.barcode && <span className="text-xs text-muted-foreground ml-2">(Scanned)</span>}</TableCell>
-                          <TableCell className={`text-muted-foreground ${log.crossedOut ? 'line-through opacity-70' : ''}`}>{formatDate(log.timestamp)}</TableCell>
-                          <TableCell className="text-right">
-                            {!log.crossedOut ? (
-                              <Button variant="ghost" size="sm" onClick={() => handleToggleCrossOut(log.id)}>
-                                <Strikethrough className="h-4 w-4 text-destructive" />
-                              </Button>
-                            ) : (
-                              <Button variant="ghost" size="sm" onClick={() => handleToggleCrossOut(log.id)}>
-                                <RefreshCw className="h-4 w-4 text-primary" />
-                              </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
+        
       </div>
 
       {/* Clear All Confirmation Dialog */}

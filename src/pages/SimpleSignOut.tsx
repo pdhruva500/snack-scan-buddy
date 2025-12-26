@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +23,45 @@ const SimpleSignOut = () => {
   const [lunchRestrictionMessage, setLunchRestrictionMessage] = useState<string | null>(null);
   const [lastPhysicalScan, setLastPhysicalScan] = useState<string>("");
   const [scanCount, setScanCount] = useState(0);
+
+  const DRAFT_KEY = "simple_signout_draft";
+  const draftRef = useRef<any>({});
+
+  // keep ref updated with latest values so cleanup can save current draft
+  draftRef.current = { firstName, lastName, foodItem, detectedBarcode, detectedProduct };
+
+  // Restore draft from sessionStorage on mount and save on unmount
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const draft = JSON.parse(raw);
+        if (draft.firstName) setFirstName(draft.firstName);
+        if (draft.lastName) setLastName(draft.lastName);
+        if (draft.foodItem) setFoodItem(draft.foodItem);
+        if (draft.detectedBarcode) setDetectedBarcode(draft.detectedBarcode);
+        if (draft.detectedProduct) setDetectedProduct(draft.detectedProduct);
+      }
+    } catch (e) {
+      console.error("Failed to restore draft:", e);
+    }
+
+    return () => {
+      try {
+        sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draftRef.current || {}));
+      } catch (e) {
+        console.error("Failed to save draft on unmount:", e);
+      }
+    };
+  }, []);
+
+  const saveDraft = () => {
+    try {
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draftRef.current || {}));
+    } catch (e) {
+      console.error("Failed to save draft:", e);
+    }
+  };
 
   // Update lunch restriction message every minute
   useEffect(() => {
@@ -128,6 +167,7 @@ const SimpleSignOut = () => {
     setFoodItem("");
     setDetectedBarcode(null);
     setDetectedProduct(null);
+    try { sessionStorage.removeItem(DRAFT_KEY); } catch {}
   };
   const navigate = useNavigate();
 
@@ -150,17 +190,9 @@ const SimpleSignOut = () => {
             transition={{ delay: 0.2, duration: 0.6 }}
             className="text-center text-white mb-8"
           >
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent whitespace-nowrap">
-                Eastside Eats
-              </h1>
-              <Link to="/">
-                <img
-                  src="/eaglelogo.png"
-                  alt="Eastside Eats Eagle Logo"
-                  className="w-16 h-16 md:w-20 md:h-20"
-                />
-              </Link>
+            <div className="flex items-center justify-center gap-3 mb-4 flex-nowrap">
+              <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent whitespace-nowrap">Eastside Eats</h1>
+              <img src="/eaglelogo.png" alt="Eastside Eats Eagle Logo" className="w-16 h-16 md:w-20 md:h-20" />
             </div>
             <p className="text-lg md:text-xl mb-2 font-light">
               Quick snack logging for tablets
@@ -240,7 +272,10 @@ const SimpleSignOut = () => {
                         type="button"
                         variant="outline"
                         size="icon"
-                        onClick={() => navigate("/simple-scan")}
+                        onClick={() => {
+                          saveDraft();
+                          navigate("/simple-scan");
+                        }}
                         disabled={!!lunchRestrictionMessage}
                         title={lunchRestrictionMessage ?? "Scan Barcode"}
                       >

@@ -26,6 +26,21 @@ export const usePhysicalBarcodeScanner = ({
     if (!enabled) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      // If the user is typing in an input/textarea/select or any contenteditable
+      // element, do not intercept the keys so normal typing is possible.
+      const target = event.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName;
+        if (
+          tag === "INPUT" ||
+          tag === "TEXTAREA" ||
+          tag === "SELECT" ||
+          target.isContentEditable
+        ) {
+          return;
+        }
+      }
+
       const currentTime = Date.now();
       const timeDiff = currentTime - lastInputTime.current;
 
