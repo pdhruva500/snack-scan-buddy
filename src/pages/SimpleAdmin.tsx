@@ -208,32 +208,36 @@ const SimpleAdmin = () => {
     <div className="min-h-screen bg-background">
       {!authorized && (
         <div className="container mx-auto px-4 py-20 flex items-center justify-center">
-          <Card className="max-w-md w-full">
-            <CardHeader>
-              <CardTitle>Admin Login</CardTitle>
-              <CardDescription>Enter password to view snack logs</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handlePasswordSubmit} className="space-y-4">
-                <div>
-                  <input
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="input w-full"
-                  />
+            <Card className="max-w-md w-full">
+              <CardHeader>
+                <CardTitle>Admin Login</CardTitle>
+                <CardDescription>Enter password to view snack logs</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col items-center gap-4">
+                  <form onSubmit={handlePasswordSubmit} className="w-full space-y-4">
+                    <div>
+                      <input
+                        type="password"
+                        placeholder="Password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="input w-full text-lg py-3"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <Link to="/">
+                        <Button variant="ghost">Back</Button>
+                      </Link>
+                      <Button type="submit">Unlock</Button>
+                    </div>
+                  </form>
+                  <p className="text-xs text-muted-foreground">Tip: default password for pilot is <strong>1234</strong></p>
                 </div>
-                <div className="flex justify-end gap-2">
-                  <Link to="/">
-                    <Button variant="ghost">Back</Button>
-                  </Link>
-                  <Button type="submit">Unlock</Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </div>
       )}
       {authorized && (
       <div className="container mx-auto px-4 py-8">

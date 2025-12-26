@@ -109,7 +109,7 @@ const SignOut = () => {
 
       const studentName = `${firstName.trim()} ${lastName.trim()}`;
       // Save to sessionStorage (same format as Simple Mode)
-      const existing = JSON.parse(sessionStorage.getItem('simple_logs') || '[]');
+      const existing = JSON.parse(localStorage.getItem('simple_logs') || '[]');
       const newLog = {
         id: Date.now().toString(),
         student_name: studentName,
@@ -117,7 +117,7 @@ const SignOut = () => {
         timestamp: new Date().toISOString(),
       };
       existing.push(newLog);
-      sessionStorage.setItem('simple_logs', JSON.stringify(existing));
+      localStorage.setItem('simple_logs', JSON.stringify(existing));
       window.dispatchEvent(new Event('simple_log_added'));
       toast.success('Snack saved locally', { description: `"${userInput}" saved for ${newLog.student_name}` });
       setManualSnackName('');
@@ -145,7 +145,7 @@ const SignOut = () => {
 
       try {
         const studentName = `${firstName.trim()} ${lastName.trim()}`;
-        const existing = JSON.parse(sessionStorage.getItem('simple_logs') || '[]');
+        const existing = JSON.parse(localStorage.getItem('simple_logs') || '[]');
         const newLog = {
           id: Date.now().toString(),
           student_name: studentName,
@@ -153,7 +153,7 @@ const SignOut = () => {
           timestamp: new Date().toISOString(),
         };
         existing.push(newLog);
-        sessionStorage.setItem('simple_logs', JSON.stringify(existing));
+        localStorage.setItem('simple_logs', JSON.stringify(existing));
         window.dispatchEvent(new Event('simple_log_added'));
         toast.success('Snack saved locally', { description: `${detectedSnack.name} for ${studentName}` });
         setDetectedSnack(null);
@@ -182,7 +182,7 @@ const SignOut = () => {
   useEffect(() => {
     const load = () => {
       try {
-        const stored = JSON.parse(sessionStorage.getItem('simple_logs') || '[]');
+        const stored = JSON.parse(localStorage.getItem('simple_logs') || '[]');
         const sorted = (stored as any[]).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         setLocalLogs(sorted);
       } catch (e) {
@@ -553,7 +553,7 @@ const SignOut = () => {
                                 setLocalLogs([]);
 
                                 try {
-                                  sessionStorage.removeItem('simple_logs');
+                                  localStorage.removeItem('simple_logs');
                                   toast.success('All local logs cleared');
                                   window.dispatchEvent(new Event('simple_logs_cleared'));
                                   setShowLocalClearConfirm(false);
