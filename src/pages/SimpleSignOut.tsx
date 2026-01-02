@@ -133,18 +133,21 @@ const SimpleSignOut = () => {
   // Total scans counter (updates when logs change)
   useEffect(() => {
     const refresh = () => {
+      // read persistent total counter; fall back to current logs length if missing
+      const total = Number(localStorage.getItem('simple_total_scans'));
+      if (!isNaN(total) && total > 0) {
+        setTotalScans(total);
+        return;
+      }
       const stored = JSON.parse(localStorage.getItem('simple_logs') || '[]');
       setTotalScans((stored || []).length);
     };
 
     refresh();
+    // only listen for additions — deletes/clears should NOT decrement this counter
     window.addEventListener('simple_log_added', refresh as EventListener);
-    window.addEventListener('simple_log_removed', refresh as EventListener);
-    window.addEventListener('simple_logs_cleared', refresh as EventListener);
     return () => {
       window.removeEventListener('simple_log_added', refresh as EventListener);
-      window.removeEventListener('simple_log_removed', refresh as EventListener);
-      window.removeEventListener('simple_logs_cleared', refresh as EventListener);
     };
   }, []);
 
@@ -169,6 +172,12 @@ const SimpleSignOut = () => {
     const existingLogs = JSON.parse(localStorage.getItem("simple_logs") || "[]");
     existingLogs.push(logEntry);
     localStorage.setItem("simple_logs", JSON.stringify(existingLogs));
+
+    // increment persistent total scans counter (does not decrease on deletes)
+    try {
+      const prev = Number(localStorage.getItem('simple_total_scans') || 0);
+      localStorage.setItem('simple_total_scans', String(prev + 1));
+    } catch (e) {}
 
     // Dispatch custom event so admin page can listen for updates
     window.dispatchEvent(new CustomEvent("simple_log_added", { detail: logEntry }));
