@@ -18,11 +18,26 @@ const Index = () => {
   const [showScanner, setShowScanner] = useState(false);
   const [scannedProduct, setScannedProduct] = useState<any>(null);
   const [isLoadingProduct, setIsLoadingProduct] = useState(false);
+  const [totalScans, setTotalScans] = useState<number>(0);
 
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
     }
+    const refresh = () => {
+      const stored = JSON.parse(localStorage.getItem('simple_logs') || '[]');
+      setTotalScans((stored || []).length);
+    };
+
+    refresh();
+    window.addEventListener('simple_log_added', refresh as EventListener);
+    window.addEventListener('simple_log_removed', refresh as EventListener);
+    window.addEventListener('simple_logs_cleared', refresh as EventListener);
+    return () => {
+      window.removeEventListener('simple_log_added', refresh as EventListener);
+      window.removeEventListener('simple_log_removed', refresh as EventListener);
+      window.removeEventListener('simple_logs_cleared', refresh as EventListener);
+    };
   }, [user, loading, navigate]);
 
   const handleBarcodeDetected = async (barcode: string) => {

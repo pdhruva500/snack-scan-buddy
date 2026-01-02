@@ -23,6 +23,7 @@ const SimpleSignOut = () => {
   const [lunchRestrictionMessage, setLunchRestrictionMessage] = useState<string | null>(null);
   const [lastPhysicalScan, setLastPhysicalScan] = useState<string>("");
   const [scanCount, setScanCount] = useState(0);
+  const [totalScans, setTotalScans] = useState<number>(0);
 
   const DRAFT_KEY = "simple_signout_draft";
   const draftRef = useRef<any>({});
@@ -128,6 +129,24 @@ const SimpleSignOut = () => {
     minLength: 5,
     timeout: 100,
   });
+
+  // Total scans counter (updates when logs change)
+  useEffect(() => {
+    const refresh = () => {
+      const stored = JSON.parse(localStorage.getItem('simple_logs') || '[]');
+      setTotalScans((stored || []).length);
+    };
+
+    refresh();
+    window.addEventListener('simple_log_added', refresh as EventListener);
+    window.addEventListener('simple_log_removed', refresh as EventListener);
+    window.addEventListener('simple_logs_cleared', refresh as EventListener);
+    return () => {
+      window.removeEventListener('simple_log_added', refresh as EventListener);
+      window.removeEventListener('simple_log_removed', refresh as EventListener);
+      window.removeEventListener('simple_logs_cleared', refresh as EventListener);
+    };
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -328,7 +347,12 @@ const SimpleSignOut = () => {
       </motion.div>
 
       {/* Camera scanner moved to /simple-scan; physical scanner fills form directly. */}
-    </div>
+        {/* Small total scans counter */}
+        <div className="fixed right-4 bottom-4 bg-white/95 text-sm text-muted-foreground px-3 py-1 rounded-full shadow-lg flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Total scans</span>
+          <span className="font-semibold text-sm">{totalScans}</span>
+        </div>
+      </div>
   );
 };
 

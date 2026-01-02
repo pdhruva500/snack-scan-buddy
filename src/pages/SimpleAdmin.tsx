@@ -66,8 +66,11 @@ const SimpleAdmin = () => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [filteredLogs, setFilteredLogs] = useState<LogEntry[]>([]);
   const [showClearDialog, setShowClearDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [chartData, setChartData] = useState<Array<{ date: string; count: number }>>([]);
+  const [dailyRemaining, setDailyRemaining] = useState<Array<{ date: string; remaining: number }>>([]);
   // (no permanent deletes — we toggle a crossedOut flag instead)
 
   // Load logs from localStorage (persist across refreshes)
@@ -81,10 +84,14 @@ const SimpleAdmin = () => {
 
   const generateChartData = (logsData: LogEntry[]) => {
     const dateMap = new Map<string, number>();
+    const remainingMap = new Map<string, number>();
 
     logsData.forEach((log) => {
       const date = new Date(log.timestamp).toLocaleDateString();
       dateMap.set(date, (dateMap.get(date) || 0) + 1);
+      if (!log.crossedOut) {
+        remainingMap.set(date, (remainingMap.get(date) || 0) + 1);
+      }
     });
 
     const chartArray = Array.from(dateMap.entries())
@@ -93,6 +100,13 @@ const SimpleAdmin = () => {
       .slice(-7);
 
     setChartData(chartArray);
+
+    const remainingArray = Array.from(remainingMap.entries())
+      .map(([date, remaining]) => ({ date, remaining }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .slice(-7);
+
+    setDailyRemaining(remainingArray);
   };
 
   useEffect(() => {
@@ -152,9 +166,33 @@ const SimpleAdmin = () => {
     // No toasts for cross-out/undo — visual only
   };
 
+  const promptDeleteLog = (id: string) => {
+    setDeleteTargetId(id);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    const id = deleteTargetId;
+    if (!id) return setShowDeleteDialog(false);
+
+    const remainingStored = JSON.parse(localStorage.getItem('simple_logs') || '[]') as LogEntry[];
+    const filteredStored = remainingStored.filter((l) => l.id !== id);
+    localStorage.setItem('simple_logs', JSON.stringify(filteredStored));
+
+    const ordered = filteredStored.slice().reverse();
+    setLogs(ordered);
+    setFilteredLogs(ordered);
+    generateChartData(ordered);
+    window.dispatchEvent(new Event('simple_log_removed'));
+    setShowDeleteDialog(false);
+    setDeleteTargetId(null);
+    toast.success('Log deleted');
+  };
+
   const handleClearAll = () => {
     localStorage.removeItem("simple_logs");
     setLogs([]);
+    setDailyRemaining([]);
     setShowClearDialog(false);
     window.dispatchEvent(new Event("simple_logs_cleared"));
     toast.success("All logs cleared");
@@ -274,65 +312,98 @@ const SimpleAdmin = () => {
           </div>
         </motion.div>
 
-        {/* Move the full logs table to the top for cafeteria visibility */}
+        {/* Top: Logs + Remaining per day for quick cashier view */}
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="mb-6">
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div>
-                  <CardTitle className="text-lg md:text-xl">All Snack Logs</CardTitle>
-                  <CardDescription className="text-sm">Total logs: {logs.length}</CardDescription>
-                </div>
-                <div className="relative w-full md:w-64">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <input
-                    placeholder="Search name or snack..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 input bg-background border"
-                  />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {logs.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">No snack logs yet.</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Food Item</TableHead>
-                        <TableHead>Time</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredLogs.map((log) => (
-                        <TableRow key={log.id}>
-                          <TableCell className={`font-medium ${log.crossedOut ? 'line-through text-muted-foreground opacity-70' : ''}`}>{log.firstName} {log.lastName}</TableCell>
-                          <TableCell className={`${log.crossedOut ? 'line-through text-muted-foreground opacity-70' : ''}`}>{log.foodItem}{log.barcode && <span className="text-xs text-muted-foreground ml-2">(Scanned)</span>}</TableCell>
-                          <TableCell className={`text-muted-foreground ${log.crossedOut ? 'line-through opacity-70' : ''}`}>{formatDate(log.timestamp)}</TableCell>
-                          <TableCell className="text-right">
-                            {!log.crossedOut ? (
-                              <Button variant="ghost" size="sm" onClick={() => handleToggleCrossOut(log.id)}>
-                                <Strikethrough className="h-4 w-4 text-destructive" />
-                              </Button>
-                            ) : (
-                              <Button variant="ghost" size="sm" onClick={() => handleToggleCrossOut(log.id)}>
-                                <RefreshCw className="h-4 w-4 text-primary" />
-                              </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2">
+              <Card>
+                <CardHeader>
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div>
+                      <CardTitle className="text-lg md:text-xl">All Snack Logs</CardTitle>
+                      <CardDescription className="text-sm">Total logs: {logs.length}</CardDescription>
+                    </div>
+                    <div className="relative w-full md:w-64">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <input
+                        placeholder="Search name or snack..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 input bg-background border"
+                      />
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {logs.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">No snack logs yet.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Food Item</TableHead>
+                            <TableHead>Time</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredLogs.map((log) => (
+                            <TableRow key={log.id}>
+                              <TableCell className={`font-medium ${log.crossedOut ? 'line-through text-muted-foreground opacity-70' : ''}`}>{log.firstName} {log.lastName}</TableCell>
+                              <TableCell className={`${log.crossedOut ? 'line-through text-muted-foreground opacity-70' : ''}`}>{log.foodItem}{log.barcode && <span className="text-xs text-muted-foreground ml-2">(Scanned)</span>}</TableCell>
+                              <TableCell className={`text-muted-foreground ${log.crossedOut ? 'line-through opacity-70' : ''}`}>{formatDate(log.timestamp)}</TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  {!log.crossedOut ? (
+                                    <Button variant="ghost" size="sm" onClick={() => handleToggleCrossOut(log.id)}>
+                                      <Strikethrough className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  ) : (
+                                    <Button variant="ghost" size="sm" onClick={() => handleToggleCrossOut(log.id)}>
+                                      <RefreshCw className="h-4 w-4 text-primary" />
+                                    </Button>
+                                  )}
+
+                                  <Button variant="ghost" size="sm" onClick={() => promptDeleteLog(log.id)} title="Delete">
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="lg:col-span-1">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Remaining Per Day</CardTitle>
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  {dailyRemaining.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No data</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {dailyRemaining.map((d) => (
+                        <div key={d.date} className="flex items-center justify-between">
+                          <div className="text-sm">{d.date}</div>
+                          <div className="text-sm font-bold">{d.remaining}</div>
+                        </div>
                       ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </motion.div>
 
         <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
@@ -346,6 +417,7 @@ const SimpleAdmin = () => {
               <p className="text-xs text-muted-foreground">All time</p>
             </CardContent>
           </Card>
+          
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Unique Students</CardTitle>
@@ -437,7 +509,21 @@ const SimpleAdmin = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* single-delete confirmation removed — we use cross-out toggle instead */}
+      {/* Single-log delete confirmation */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete log?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the selected log. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </div>
   );
