@@ -38,28 +38,17 @@ interface LogEntry {
 const SimpleAdmin = () => {
   const [authorized, setAuthorized] = useState<boolean>(false);
   const [password, setPassword] = useState("");
-  const ADMIN_KEY = "simple_admin_auth";
-
-  useEffect(() => {
-    try {
-      const stored = sessionStorage.getItem(ADMIN_KEY);
-      if (stored === "1") setAuthorized(true);
-    } catch (e) {
-      console.error("Failed to read admin auth:", e);
-    }
-  }, []);
+  // Note: admin authorization is intentionally not persisted.
+  // Users must enter the PIN every time they access the admin view.
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === "1234") {
-      try {
-        sessionStorage.setItem(ADMIN_KEY, "1");
-      } catch {}
+    if (password === "4321") {
       setAuthorized(true);
       setPassword("");
       toast.success("Authorized");
     } else {
-      toast.error("Incorrect password");
+      toast.error("Incorrect PIN");
       setPassword("");
     }
   };
@@ -257,7 +246,7 @@ const SimpleAdmin = () => {
                     <div>
                       <input
                         type="password"
-                        placeholder="Password"
+                        placeholder="PIN"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="input w-full text-lg py-3"
@@ -266,12 +255,12 @@ const SimpleAdmin = () => {
                     </div>
                     <div className="flex justify-between items-center">
                       <Link to="/">
-                        <Button variant="ghost">Back</Button>
+                        <Button type="button" variant="ghost">Back</Button>
                       </Link>
                       <Button type="submit">Unlock</Button>
                     </div>
                   </form>
-                  <p className="text-xs text-muted-foreground">Tip: default password for pilot is <strong>1234</strong></p>
+                  
                 </div>
               </CardContent>
             </Card>
