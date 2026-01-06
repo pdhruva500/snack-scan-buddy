@@ -67,7 +67,12 @@ export const BarcodeScanner = ({ onDetected, onClose, disabled = false }: Barcod
               if (result && mounted) {
                 const barcode = result.getText();
                 if (barcode && barcode.length > 0) {
-                  onDetected(barcode);
+                  const cleaned = barcode.trim();
+                  // Ignore single-digit numeric results (likely noise)
+                  if (/^\d$/.test(cleaned)) {
+                    return;
+                  }
+                  onDetected(cleaned);
                 }
               }
             }
