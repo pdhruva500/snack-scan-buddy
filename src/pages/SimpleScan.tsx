@@ -30,6 +30,11 @@ const SimpleScan = () => {
       if (productData && productData.product) {
         setScannedProduct(productData.product);
         toast.success(`Scanned: ${productData.product.product_name}`);
+        try {
+          const { normalizeProductName } = require("@/lib/nameMap");
+          // replace displayed name in product for the scanner preview
+          productData.product.product_name = normalizeProductName(productData.product.product_name, productData.product.brands);
+        } catch {}
       } else {
         toast.error("Product not found. Please try another barcode.");
         setScannedProduct(null);
@@ -56,6 +61,43 @@ const SimpleScan = () => {
     setShowCameraScanner(false);
     // Reuse same logic as physical scanner
     await handlePhysicalBarcodeDetected(barcode);
+  };
+
+  const DRAFT_KEY = 'simple_signout_draft';
+
+  const appendToDraft = (product: any, barcode?: string) => {
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY);
+      const draft = raw ? JSON.parse(raw) : {};
+      
+      // Use new scannedItems structure
+      draft.scannedItems = draft.scannedItems || [];
+      
+      try {
+        const { normalizeProductName } = require("@/lib/nameMap");
+        const normalizedName = normalizeProductName(product.product_name, product.brands);
+        
+        draft.scannedItems.push({
+          id: `scan-${Date.now()}-${Math.random()}`,
+          product: product,
+          barcode: barcode || '',
+          name: normalizedName
+        });
+      } catch {
+        draft.scannedItems.push({
+          id: `scan-${Date.now()}-${Math.random()}`,
+          product: product,
+          barcode: barcode || '',
+          name: product.product_name
+        });
+      }
+      
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      // notify signout page
+      window.dispatchEvent(new Event('simple_log_draft_updated'));
+    } catch (e) {
+      console.error('Failed to update draft:', e);
+    }
   };
 
   return (
@@ -142,17 +184,29 @@ const SimpleScan = () => {
             animate={{ opacity: 1, y: 0 }}
           >
             <FoodItemDisplay product={scannedProduct} />
-            <div className="max-w-2xl mx-auto mt-4 text-center">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setScannedProduct(null);
-                  setLastScan("");
-                }}
-              >
-                Scan Another Item
-              </Button>
-            </div>
+                <div className="max-w-2xl mx-auto mt-4 text-center flex gap-3 justify-center">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      // add to draft and allow scanning another
+                      appendToDraft(scannedProduct, lastScan);
+                      setScannedProduct(null);
+                      setLastScan("");
+                    }}
+                  >
+                    Add & Scan Another
+                  </Button>
+
+                  <Button
+                    onClick={() => {
+                      // add to draft and return to sign-out page
+                      appendToDraft(scannedProduct, lastScan);
+                      navigate('/simple');
+                    }}
+                  >
+                    Log Snack
+                  </Button>
+                </div>
           </motion.div>
         )}
 

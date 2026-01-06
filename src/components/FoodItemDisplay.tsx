@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { normalizeProductName } from "@/lib/nameMap";
 
 interface FoodItemDisplayProps {
   product: {
@@ -29,7 +30,7 @@ export const FoodItemDisplay = ({ product }: FoodItemDisplayProps) => {
             />
           )}
           <div>
-            <h2 className="text-xl font-bold">{product.product_name}</h2>
+            <h2 className="text-xl font-bold">{normalizeProductName(product.product_name, product.brands)}</h2>
             <p className="text-sm text-muted-foreground">{product.brands}</p>
           </div>
         </CardTitle>

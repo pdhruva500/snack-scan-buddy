@@ -5,6 +5,9 @@ interface UsePhysicalBarcodeScannerProps {
   enabled?: boolean;
   minLength?: number;
   timeout?: number;
+  // When true, the hook will capture scanner input even if an input/select/textarea
+  // or contenteditable element is focused. Default is false to allow normal typing.
+  allowOnInputs?: boolean;
 }
 
 /**
@@ -17,6 +20,7 @@ export const usePhysicalBarcodeScanner = ({
   enabled = true,
   minLength = 3,
   timeout = 100, // ms between characters to consider it a barcode scan
+  allowOnInputs = false,
 }: UsePhysicalBarcodeScannerProps) => {
   const barcodeBuffer = useRef<string>("");
   const lastInputTime = useRef<number>(0);
@@ -26,21 +30,6 @@ export const usePhysicalBarcodeScanner = ({
     if (!enabled) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      // If the user is typing in an input/textarea/select or any contenteditable
-      // element, do not intercept the keys so normal typing is possible.
-      const target = event.target as HTMLElement | null;
-      if (target) {
-        const tag = target.tagName;
-        if (
-          tag === "INPUT" ||
-          tag === "TEXTAREA" ||
-          tag === "SELECT" ||
-          target.isContentEditable
-        ) {
-          return;
-        }
-      }
-
       const currentTime = Date.now();
       const timeDiff = currentTime - lastInputTime.current;
 
@@ -48,6 +37,23 @@ export const usePhysicalBarcodeScanner = ({
       // This distinguishes between scanner input (rapid) and manual typing (slow)
       if (timeDiff > timeout) {
         barcodeBuffer.current = "";
+      }
+
+      // Track if we're building a potential barcode (rapid input detected)
+      const isRapidInput = barcodeBuffer.current.length > 0 && timeDiff < timeout;
+
+      // Check if user is in an input field
+      const target = event.target as HTMLElement | null;
+      const isInInputField = target && (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT" ||
+        target.isContentEditable
+      );
+
+      // If in input field and NOT in middle of rapid scan, allow normal typing
+      if (isInInputField && !isRapidInput && !allowOnInputs) {
+        return;
       }
 
       lastInputTime.current = currentTime;
@@ -71,7 +77,10 @@ export const usePhysicalBarcodeScanner = ({
         !event.altKey &&
         !event.metaKey
       ) {
-        event.preventDefault();
+        // Only prevent default if we're in the middle of a scan or not in an input
+        if (isRapidInput || !isInInputField) {
+          event.preventDefault();
+        }
         barcodeBuffer.current += event.key;
 
         // Clear the timeout if it exists

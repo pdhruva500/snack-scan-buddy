@@ -5,33 +5,34 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Camera, UserCircle2, Scan, ArrowLeft } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Camera, UserCircle2, Scan, ArrowLeft, X } from "lucide-react";
 import cafeteriaHero from "@/assets/cafeteria-hero.jpg";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { usePhysicalBarcodeScanner } from "@/hooks/usePhysicalBarcodeScanner";
 import { fetchFoodProduct } from "@/services/foodService";
 import { toast } from "sonner";
 import { isLunchTime, getLunchTimeMessage } from "@/lib/timeRestrictions";
 
 const SimpleSignOut = () => {
+  const navigate = useNavigate();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [foodItem, setFoodItem] = useState("");
-  const [detectedBarcode, setDetectedBarcode] = useState<string | null>(null);
-  const [detectedProduct, setDetectedProduct] = useState<any>(null);
+  const [manualFoodItem, setManualFoodItem] = useState("");
+  const [scannedItems, setScannedItems] = useState<Array<{id: string, product: any, barcode: string, name: string}>>([]);
   const [confirmation, setConfirmation] = useState<any>(null);
   const [lunchRestrictionMessage, setLunchRestrictionMessage] = useState<string | null>(null);
-  const [lastPhysicalScan, setLastPhysicalScan] = useState<string>("");
-  const [scanCount, setScanCount] = useState(0);
   const [totalScans, setTotalScans] = useState<number>(0);
 
   const DRAFT_KEY = "simple_signout_draft";
   const draftRef = useRef<any>({});
 
   // keep ref updated with latest values so cleanup can save current draft
-  draftRef.current = { firstName, lastName, foodItem, detectedBarcode, detectedProduct };
+  useEffect(() => {
+    draftRef.current = { firstName, lastName, manualFoodItem, scannedItems };
+  }, [firstName, lastName, manualFoodItem, scannedItems]);
 
-  // Restore draft from sessionStorage on mount and save on unmount
+  // Restore draft from sessionStorage on mount
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem(DRAFT_KEY);
@@ -39,15 +40,56 @@ const SimpleSignOut = () => {
         const draft = JSON.parse(raw);
         if (draft.firstName) setFirstName(draft.firstName);
         if (draft.lastName) setLastName(draft.lastName);
-        if (draft.foodItem) setFoodItem(draft.foodItem);
-        if (draft.detectedBarcode) setDetectedBarcode(draft.detectedBarcode);
-        if (draft.detectedProduct) setDetectedProduct(draft.detectedProduct);
+        if (draft.manualFoodItem) setManualFoodItem(draft.manualFoodItem);
+        if (draft.scannedItems && Array.isArray(draft.scannedItems)) {
+          setScannedItems(draft.scannedItems);
+        }
+        // Also check for legacy detectedProducts from scanner page
+        if (draft.detectedProducts && Array.isArray(draft.detectedProducts)) {
+          const items = draft.detectedProducts.map((item: any, idx: number) => ({
+            id: `legacy-${idx}-${Date.now()}`,
+            product: item.product,
+            barcode: item.barcode || '',
+            name: item.product?.product_name || 'Unknown'
+          }));
+          setScannedItems(prev => [...prev, ...items]);
+        }
       }
     } catch (e) {
       console.error("Failed to restore draft:", e);
     }
 
+    // Listen for updates from scanner page
+    const handleDraftUpdate = () => {
+      try {
+        const raw = sessionStorage.getItem(DRAFT_KEY);
+        if (raw) {
+          const draft = JSON.parse(raw);
+          if (draft.detectedProducts && Array.isArray(draft.detectedProducts)) {
+            const newItems = draft.detectedProducts.map((item: any, idx: number) => ({
+              id: `scan-${idx}-${Date.now()}`,
+              product: item.product,
+              barcode: item.barcode || '',
+              name: item.product?.product_name || 'Unknown'
+            }));
+            setScannedItems(newItems);
+            // Clear the legacy format
+            delete draft.detectedProducts;
+            delete draft.detectedProduct;
+            delete draft.detectedBarcode;
+            draft.scannedItems = newItems;
+            sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+          }
+        }
+      } catch (e) {
+        console.error("Failed to handle draft update:", e);
+      }
+    };
+
+    window.addEventListener('simple_log_draft_updated', handleDraftUpdate);
+
     return () => {
+      window.removeEventListener('simple_log_draft_updated', handleDraftUpdate);
       try {
         sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draftRef.current || {}));
       } catch (e) {
@@ -56,13 +98,14 @@ const SimpleSignOut = () => {
     };
   }, []);
 
-  const saveDraft = () => {
+  // Persist the draft whenever key parts change
+  useEffect(() => {
     try {
       sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draftRef.current || {}));
     } catch (e) {
-      console.error("Failed to save draft:", e);
+      console.error('Failed to persist draft on change:', e);
     }
-  };
+  }, [firstName, lastName, manualFoodItem, scannedItems]);
 
   // Update lunch restriction message every minute
   useEffect(() => {
@@ -76,58 +119,71 @@ const SimpleSignOut = () => {
   }, []);
 
   const handleBarcodeDetected = async (barcode: string) => {
-    setDetectedBarcode(barcode);
+    console.log("Barcode detected:", barcode);
     
     try {
       const productData = await fetchFoodProduct(barcode);
       if (productData && productData.product && productData.product.product_name) {
-        setDetectedProduct(productData.product);
-        setFoodItem(productData.product.product_name);
-        toast.success(`Detected: ${productData.product.product_name}`);
+        try {
+          const { normalizeProductName } = require("@/lib/nameMap");
+          const normalizedName = normalizeProductName(productData.product.product_name, productData.product.brands);
+          
+          const newItem = {
+            id: `scan-${Date.now()}-${Math.random()}`,
+            product: productData.product,
+            barcode: barcode,
+            name: normalizedName
+          };
+          
+          setScannedItems(prev => [...prev, newItem]);
+          toast.success(`Scanned: ${normalizedName}`);
+        } catch {
+          const newItem = {
+            id: `scan-${Date.now()}-${Math.random()}`,
+            product: productData.product,
+            barcode: barcode,
+            name: productData.product.product_name
+          };
+          setScannedItems(prev => [...prev, newItem]);
+          toast.success(`Scanned: ${productData.product.product_name}`);
+        }
       } else {
         toast.error("Product not found. Please enter manually.");
-        setDetectedBarcode(null);
-        setDetectedProduct(null);
       }
     } catch (error) {
       console.error("Error fetching product:", error);
       toast.error("Failed to fetch product information.");
-      setDetectedBarcode(null);
-      setDetectedProduct(null);
     }
   };
 
-  // Handle physical barcode scanner input (keyboard-style scanners)
-  const handlePhysicalBarcodeDetected = async (barcode: string) => {
-    console.log("Physical scanner detected barcode:", barcode);
-    setLastPhysicalScan(barcode);
-    setScanCount(prev => prev + 1);
-    setDetectedBarcode(barcode);
+  const removeScannedItem = (id: string) => {
+    setScannedItems(prev => prev.filter(item => item.id !== id));
+    toast.info("Item removed");
+  };
 
-    try {
-      const productData = await fetchFoodProduct(barcode);
-      if (productData && productData.product && productData.product.product_name) {
-        setDetectedProduct(productData.product);
-        setFoodItem(productData.product.product_name);
-        toast.success(`Detected: ${productData.product.product_name}`);
-      } else {
-        toast.error("Product not found. Please enter manually.");
-        setDetectedBarcode(null);
-        setDetectedProduct(null);
-      }
-    } catch (error) {
-      console.error("Error fetching product:", error);
-      toast.error("Failed to fetch product information.");
-      setDetectedBarcode(null);
-      setDetectedProduct(null);
+  const addManualItem = () => {
+    const val = manualFoodItem.trim();
+    if (!val) {
+      toast.error('Please enter a food name to add');
+      return;
     }
+    const newItem = {
+      id: `manual-${Date.now()}-${Math.random()}`,
+      product: null,
+      barcode: null,
+      name: val,
+    };
+    setScannedItems(prev => [...prev, newItem]);
+    setManualFoodItem("");
+    toast.success('Added manual item');
   };
 
   usePhysicalBarcodeScanner({
-    onDetected: handlePhysicalBarcodeDetected,
+    onDetected: handleBarcodeDetected,
     enabled: !lunchRestrictionMessage,
     minLength: 5,
     timeout: 100,
+    allowOnInputs: true,
   });
 
   // Total scans counter (updates when logs change)
@@ -154,50 +210,81 @@ const SimpleSignOut = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!firstName.trim() || !lastName.trim() || !foodItem.trim()) {
-      toast.error("Please fill in all fields");
+    if (!firstName.trim() || !lastName.trim()) {
+      toast.error("Please enter your name");
       return;
     }
 
-    // Store in localStorage instead of database so logs persist across refreshes
-    const logEntry = {
-      id: Date.now().toString(),
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      foodItem: foodItem.trim(),
-      timestamp: new Date().toISOString(),
-      barcode: detectedBarcode,
-    };
+    // Need at least one item (scanned or manual)
+    const hasScannedItems = scannedItems.length > 0;
+    const hasManualItem = manualFoodItem.trim().length > 0;
 
+    if (!hasScannedItems && !hasManualItem) {
+      toast.error("Please scan or enter a food item");
+      return;
+    }
+
+    // Create log entries for all items
+    const itemsToLog = [];
+    
+    if (hasManualItem) {
+      itemsToLog.push({
+        id: Date.now().toString(),
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        foodItem: manualFoodItem.trim(),
+        timestamp: new Date().toISOString(),
+        barcode: null,
+      });
+    }
+
+    scannedItems.forEach((item, idx) => {
+      itemsToLog.push({
+        id: `${Date.now()}-${idx}`,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        foodItem: item.name,
+        timestamp: new Date().toISOString(),
+        barcode: item.barcode,
+      });
+    });
+
+    // Store all entries in localStorage
     const existingLogs = JSON.parse(localStorage.getItem("simple_logs") || "[]");
-    existingLogs.push(logEntry);
+    existingLogs.push(...itemsToLog);
     localStorage.setItem("simple_logs", JSON.stringify(existingLogs));
 
-    // increment persistent total scans counter (does not decrease on deletes)
+    // Update persistent total scans counter
     try {
       const prev = Number(localStorage.getItem('simple_total_scans') || 0);
-      localStorage.setItem('simple_total_scans', String(prev + 1));
+      localStorage.setItem('simple_total_scans', String(prev + itemsToLog.length));
     } catch (e) {}
 
-    // Dispatch custom event so admin page can listen for updates
-    window.dispatchEvent(new CustomEvent("simple_log_added", { detail: logEntry }));
+    // Dispatch events for each log entry
+    itemsToLog.forEach(entry => {
+      window.dispatchEvent(new CustomEvent("simple_log_added", { detail: entry }));
+    });
 
-  toast.success(`Logged snack for ${firstName} ${lastName}`);
+    toast.success(`Logged ${itemsToLog.length} item(s) for ${firstName} ${lastName}`);
 
-  // show a more visible in-page confirmation
-  setConfirmation(logEntry);
-  // auto-hide after 3s
-  setTimeout(() => setConfirmation(null), 3000);
+    // Show confirmation
+    setConfirmation({
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      count: itemsToLog.length,
+      items: itemsToLog.map(i => i.foodItem)
+    });
+    setTimeout(() => setConfirmation(null), 3000);
     
     // Reset form
     setFirstName("");
     setLastName("");
-    setFoodItem("");
-    setDetectedBarcode(null);
-    setDetectedProduct(null);
-    try { sessionStorage.removeItem(DRAFT_KEY); } catch {}
+    setManualFoodItem("");
+    setScannedItems([]);
+    try { 
+      sessionStorage.removeItem(DRAFT_KEY); 
+    } catch {}
   };
-  const navigate = useNavigate();
 
   // Keep the form-based UI below; scanner modal controlled by `showScanner`.
   return (
@@ -241,13 +328,14 @@ const SimpleSignOut = () => {
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                className="mb-4 p-3 rounded-lg bg-emerald-600/90 text-white flex items-center justify-between shadow-lg"
+                className="mb-4 p-3 rounded-lg bg-emerald-600/90 text-white shadow-lg"
               >
-                <div>
-                  <div className="font-semibold">Logged: {confirmation.firstName} {confirmation.lastName}</div>
-                  <div className="text-sm">{confirmation.foodItem}</div>
+                <div className="font-semibold">
+                  Logged {confirmation.count} item(s) for {confirmation.firstName} {confirmation.lastName}
                 </div>
-                <div className="text-xs opacity-90">Saved</div>
+                <div className="text-sm mt-1">
+                  {confirmation.items.join(", ")}
+                </div>
               </motion.div>
             )}
             <Card className="backdrop-blur-sm bg-background/95 shadow-2xl">
@@ -291,31 +379,69 @@ const SimpleSignOut = () => {
                     <div className="flex gap-2">
                       <Input
                         id="foodItem"
-                        placeholder="Enter food name or scan barcode"
-                        value={foodItem}
-                        onChange={(e) => setFoodItem(e.target.value)}
-                        required
+                        placeholder="Type food name or use scanner"
+                        value={manualFoodItem}
+                        onChange={(e) => setManualFoodItem(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            addManualItem();
+                          }
+                        }}
                       />
+                      <Button type="button" size="sm" onClick={addManualItem} disabled={!!lunchRestrictionMessage}>
+                        Add
+                      </Button>
                       <Button
                         type="button"
                         variant="outline"
                         size="icon"
                         onClick={() => {
-                          saveDraft();
                           navigate("/simple-scan");
                         }}
                         disabled={!!lunchRestrictionMessage}
-                        title={lunchRestrictionMessage ?? "Scan Barcode"}
+                        title={lunchRestrictionMessage ?? "Open Scanner"}
                       >
                         <Scan className="h-4 w-4" />
                       </Button>
                     </div>
-                    {detectedProduct && (
-                      <p className="text-xs text-muted-foreground">
-                        Scanned: {detectedProduct.product_name}
-                      </p>
-                    )}
                   </div>
+
+                  {/* Scanned Items Display */}
+                  {scannedItems.length > 0 && (
+                    <div className="space-y-2">
+                      <Label>Scanned Items ({scannedItems.length})</Label>
+                      <div className="flex flex-wrap gap-2">
+                        <AnimatePresence>
+                          {scannedItems.map((item) => (
+                            <motion.div
+                              key={item.id}
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.8 }}
+                            >
+                              <Badge
+                                variant="secondary"
+                                className="px-3 py-1.5 text-sm flex items-center gap-2 cursor-pointer hover:bg-destructive/20"
+                              >
+                                <span>{item.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => removeScannedItem(item.id)}
+                                  className="hover:text-destructive"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </Badge>
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Click X to remove an item. All items will be logged when you submit.
+                      </p>
+                    </div>
+                  )}
 
                   <Button 
                     type="submit" 
