@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+// back navigation removed to keep users on this page during testing
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { UserCircle2, Trash2, ArrowLeft, Download, RefreshCw, Search, Package, Users, TrendingUp, Strikethrough } from "lucide-react";
+import { UserCircle2, Trash2, Download, RefreshCw, Search, Package, Users, TrendingUp, Strikethrough } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import {
@@ -43,7 +43,7 @@ const SimpleAdmin = () => {
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === "4321") {
+    if (password === "kfw*kcg!bqe2JPN!maj") {
       setAuthorized(true);
       setPassword("");
       toast.success("Authorized");
@@ -58,6 +58,7 @@ const SimpleAdmin = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [chartData, setChartData] = useState<Array<{ date: string; count: number }>>([]);
   const [dailyRemaining, setDailyRemaining] = useState<Array<{ date: string; remaining: number }>>([]);
   // (no permanent deletes — we toggle a crossedOut flag instead)
@@ -129,20 +130,26 @@ const SimpleAdmin = () => {
     };
   }, [authorized]);
 
+  // debounce search input to improve typing responsiveness
   useEffect(() => {
-    // filter by search term
-    if (!searchTerm.trim()) {
+    const t = setTimeout(() => setDebouncedSearch(searchTerm), 150);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    // filter by debounced search term
+    if (!debouncedSearch.trim()) {
       setFilteredLogs(logs);
       return;
     }
 
-    const term = searchTerm.toLowerCase();
+    const term = debouncedSearch.toLowerCase();
     setFilteredLogs(
       logs.filter((l) =>
         `${l.firstName} ${l.lastName}`.toLowerCase().includes(term) || l.foodItem.toLowerCase().includes(term)
       )
     );
-  }, [searchTerm, logs]);
+  }, [debouncedSearch, logs]);
 
   const handleToggleCrossOut = (id: string) => {
     const updatedLogs = logs.map((log) => (log.id === id ? { ...log, crossedOut: !log.crossedOut } : log));
@@ -253,10 +260,7 @@ const SimpleAdmin = () => {
                         autoFocus
                       />
                     </div>
-                    <div className="flex justify-between items-center">
-                      <Link to="/">
-                        <Button type="button" variant="ghost">Back</Button>
-                      </Link>
+                    <div className="flex justify-end items-center">
                       <Button type="submit">Unlock</Button>
                     </div>
                   </form>
@@ -292,12 +296,6 @@ const SimpleAdmin = () => {
                 <span className="hidden sm:inline">Clear Logs</span>
               </Button>
             )}
-            <Link to="/simple">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Back</span>
-              </Button>
-            </Link>
           </div>
         </motion.div>
 
