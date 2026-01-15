@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-// back navigation removed to keep users on this page during testing
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { UserCircle2, Trash2, Download, RefreshCw, Search, Package, Users, TrendingUp, Strikethrough } from "lucide-react";
+import { UserCircle2, Trash2, ArrowLeft, Download, RefreshCw, Search, Package, Users, TrendingUp, Strikethrough } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import {
@@ -260,7 +260,10 @@ const SimpleAdmin = () => {
                         autoFocus
                       />
                     </div>
-                    <div className="flex justify-end items-center">
+                    <div className="flex justify-between items-center">
+                      <Link to="/">
+                        <Button type="button" variant="ghost">Back</Button>
+                      </Link>
                       <Button type="submit">Unlock</Button>
                     </div>
                   </form>
@@ -296,6 +299,12 @@ const SimpleAdmin = () => {
                 <span className="hidden sm:inline">Clear Logs</span>
               </Button>
             )}
+            <Link to="/simple">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Back</span>
+              </Button>
+            </Link>
           </div>
         </motion.div>
 
