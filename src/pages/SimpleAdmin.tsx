@@ -24,6 +24,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { loadLogsFromSupabase, clearAllLogs } from "@/services/simpleLogService";
 
 interface LogEntry {
   id: string;
@@ -64,8 +65,8 @@ const SimpleAdmin = () => {
   // (no permanent deletes — we toggle a crossedOut flag instead)
 
   // Load logs from localStorage (persist across refreshes)
-  const loadLogs = () => {
-    const storedLogs = JSON.parse(localStorage.getItem("simple_logs") || "[]");
+  const loadLogs = async () => {
+    const storedLogs = await loadLogsFromSupabase();
     const ordered = (storedLogs || []).slice().reverse();
     setLogs(ordered);
     setFilteredLogs(ordered);
@@ -185,8 +186,8 @@ const SimpleAdmin = () => {
     toast.success('Log deleted');
   };
 
-  const handleClearAll = () => {
-    localStorage.removeItem("simple_logs");
+  const handleClearAll = async () => {
+    await clearAllLogs();
     setLogs([]);
     setDailyRemaining([]);
     setShowClearDialog(false);
@@ -228,14 +229,22 @@ const SimpleAdmin = () => {
   };
 
   const formatDate = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
+    try {
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+      }
+      return date.toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } catch {
+      return 'Invalid Date';
+    }
   };
 
   return (

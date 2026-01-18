@@ -1,4 +1,5 @@
-// Local storage utilities for snack logs
+// Storage utilities for snack logs (Supabase + localStorage fallback)
+import { supabase } from '@/integrations/supabase/client';
 
 export interface SnackLog {
   id: string;
@@ -10,7 +11,45 @@ export interface SnackLog {
 
 const STORAGE_KEY = 'smartsnack_logs';
 
-export const getSnackLogs = (): SnackLog[] => {
+// Fetch logs from Supabase (with localStorage fallback)
+export const getSnackLogs = async (): Promise<SnackLog[]> => {
+  try {
+    // Try to fetch from Supabase first
+    const { data, error } = await supabase
+      .from('snack_logs')
+      .select('*')
+      .order('timestamp', { ascending: false });
+    
+    if (error) throw error;
+    
+    // Convert from database format to app format
+    const logs: SnackLog[] = (data || []).map(row => ({
+      id: row.id,
+      studentName: row.student_name,
+      snackName: row.snack_name,
+      timestamp: row.timestamp,
+      scanType: row.scan_type as 'manual' | 'barcode' | undefined,
+    }));
+    
+    // Update localStorage cache
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
+    
+    return logs;
+  } catch (error) {
+    console.error('Error fetching from Supabase, using localStorage:', error);
+    // Fallback to localStorage
+    try {
+      const logs = localStorage.getItem(STORAGE_KEY);
+      return logs ? JSON.parse(logs) : [];
+    } catch (localError) {
+      console.error('Error reading localStorage:', localError);
+      return [];
+    }
+  }
+};
+
+// Legacy sync version for backward compatibility
+export const getSnackLogsSync = (): SnackLog[] => {
   try {
     const logs = localStorage.getItem(STORAGE_KEY);
     return logs ? JSON.parse(logs) : [];
@@ -20,26 +59,61 @@ export const getSnackLogs = (): SnackLog[] => {
   }
 };
 
-export const addSnackLog = (log: Omit<SnackLog, 'id' | 'timestamp'>): SnackLog => {
+export const addSnackLog = async (log: Omit<SnackLog, 'id' | 'timestamp'>): Promise<SnackLog> => {
   const newLog: SnackLog = {
     ...log,
     id: crypto.randomUUID(),
     timestamp: new Date().toISOString(),
   };
   
-  const logs = getSnackLogs();
-  logs.unshift(newLog); // Add to beginning for most recent first
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
+  // Save to localStorage immediately
+  const localLogs = getSnackLogsSync();
+  localLogs.unshift(newLog);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(localLogs));
+  
+  // Try to save to Supabase (don't block on failure)
+  try {
+    const { error } = await supabase
+      .from('snack_logs')
+      .insert({
+        id: newLog.id,
+        student_name: newLog.studentName,
+        snack_name: newLog.snackName,
+        timestamp: newLog.timestamp,
+        scan_type: newLog.scanType,
+      });
+    
+    if (error) {
+      console.error('Error saving to Supabase:', error);
+    }
+  } catch (error) {
+    console.error('Failed to sync with Supabase:', error);
+  }
   
   return newLog;
 };
 
-export const clearSnackLogs = (): void => {
+export const clearSnackLogs = async (): Promise<void> => {
+  // Clear localStorage
   localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+  
+  // Try to clear Supabase
+  try {
+    const { error } = await supabase
+      .from('snack_logs')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all rows
+    
+    if (error) {
+      console.error('Error clearing Supabase logs:', error);
+    }
+  } catch (error) {
+    console.error('Failed to clear Supabase logs:', error);
+  }
 };
 
-export const exportLogsToCSV = (): string => {
-  const logs = getSnackLogs();
+export const exportLogsToCSV = async (): Promise<string> => {
+  const logs = await getSnackLogs();
   if (logs.length === 0) return '';
   
   const headers = ['Student Name', 'Snack', 'Time', 'Scan Type'];
@@ -58,8 +132,8 @@ export const exportLogsToCSV = (): string => {
   return csvContent;
 };
 
-export const downloadCSV = (filename: string = 'smartsnack-logs.csv'): void => {
-  const csv = exportLogsToCSV();
+export const downloadCSV = async (filename: string = 'smartsnack-logs.csv'): Promise<void> => {
+  const csv = await exportLogsToCSV();
   if (!csv) return;
   
   const blob = new Blob([csv], { type: 'text/csv' });
