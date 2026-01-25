@@ -11,6 +11,7 @@ import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { FoodItemDisplay, FoodItemSkeleton } from "@/components/FoodItemDisplay";
 import { fetchFoodProduct } from "@/services/foodService";
 import { isLunchTime, getLunchTimeMessage } from "@/lib/timeRestrictions";
+import { loadLogs } from "@/services/simpleLogService";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -24,9 +25,15 @@ const Index = () => {
     if (!loading && !user) {
       navigate("/auth");
     }
-    const refresh = () => {
-      const stored = JSON.parse(localStorage.getItem('simple_logs') || '[]');
-      setTotalScans((stored || []).length);
+    
+    const refresh = async () => {
+      try {
+        const logs = await loadLogs();
+        setTotalScans(logs.length);
+      } catch {
+        const stored = JSON.parse(localStorage.getItem('simple_logs') || '[]');
+        setTotalScans((stored || []).length);
+      }
     };
 
     refresh();
