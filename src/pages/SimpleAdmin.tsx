@@ -105,6 +105,11 @@ const SimpleAdmin = () => {
 
     loadLogs();
 
+    // Poll Supabase every 5 seconds for new logs from other devices
+    const pollInterval = setInterval(() => {
+      loadLogs();
+    }, 5000);
+
     // Listen for new log entries
     const handleLogAdded = (event: Event) => {
       const customEvent = event as CustomEvent;
@@ -125,6 +130,7 @@ const SimpleAdmin = () => {
     window.addEventListener("simple_logs_cleared", handleLogsCleared);
 
     return () => {
+      clearInterval(pollInterval);
       window.removeEventListener("simple_log_added", handleLogAdded);
       window.removeEventListener("simple_log_removed", handleLogRemoved);
       window.removeEventListener("simple_logs_cleared", handleLogsCleared);
