@@ -24,7 +24,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { loadLogsFromSupabase, clearAllLogs } from "@/services/simpleLogService";
 
 interface LogEntry {
   id: string;
@@ -64,9 +63,9 @@ const SimpleAdmin = () => {
   const [dailyRemaining, setDailyRemaining] = useState<Array<{ date: string; remaining: number }>>([]);
   // (no permanent deletes — we toggle a crossedOut flag instead)
 
-  // Load logs from Supabase (single source of truth)
-  const loadLogs = async () => {
-    const storedLogs = await loadLogsFromSupabase();
+  // Load logs from localStorage
+  const loadLogs = () => {
+    const storedLogs = JSON.parse(localStorage.getItem("simple_logs") || "[]");
     const ordered = (storedLogs || []).slice().reverse();
     setLogs(ordered);
     setFilteredLogs(ordered);
@@ -105,11 +104,6 @@ const SimpleAdmin = () => {
 
     loadLogs();
 
-    // Poll Supabase every 5 seconds for new logs from other devices
-    const pollInterval = setInterval(() => {
-      loadLogs();
-    }, 5000);
-
     // Listen for new log entries
     const handleLogAdded = (event: Event) => {
       const customEvent = event as CustomEvent;
@@ -130,7 +124,6 @@ const SimpleAdmin = () => {
     window.addEventListener("simple_logs_cleared", handleLogsCleared);
 
     return () => {
-      clearInterval(pollInterval);
       window.removeEventListener("simple_log_added", handleLogAdded);
       window.removeEventListener("simple_log_removed", handleLogRemoved);
       window.removeEventListener("simple_logs_cleared", handleLogsCleared);
@@ -192,8 +185,9 @@ const SimpleAdmin = () => {
     toast.success('Log deleted');
   };
 
-  const handleClearAll = async () => {
-    await clearAllLogs();
+  const handleClearAll = () => {
+    localStorage.removeItem('simple_logs');
+    localStorage.removeItem('simple_total_scans');
     setLogs([]);
     setDailyRemaining([]);
     setShowClearDialog(false);

@@ -13,7 +13,6 @@ import { usePhysicalBarcodeScanner } from "@/hooks/usePhysicalBarcodeScanner";
 import { fetchFoodProduct } from "@/services/foodService";
 import { toast } from "sonner";
 import { isLunchTime, getLunchTimeMessage } from "@/lib/timeRestrictions";
-import { syncLogToSupabase } from "@/services/simpleLogService";
 
 const SimpleSignOut = () => {
   const navigate = useNavigate();
@@ -254,9 +253,6 @@ const SimpleSignOut = () => {
     const existingLogs = JSON.parse(localStorage.getItem("simple_logs") || "[]");
     existingLogs.push(...itemsToLog);
     localStorage.setItem("simple_logs", JSON.stringify(existingLogs));
-
-    // Sync to Supabase (async, don't block UI)
-    itemsToLog.forEach(entry => syncLogToSupabase(entry));
 
     // Update persistent total scans counter
     try {
