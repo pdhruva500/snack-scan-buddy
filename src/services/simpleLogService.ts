@@ -31,7 +31,7 @@ export const syncLogToSupabase = async (log: SimpleLog): Promise<void> => {
   }
 };
 
-// Load logs from Supabase and merge with localStorage
+// Load logs from Supabase - Supabase is the single source of truth
 export const loadLogsFromSupabase = async (): Promise<SimpleLog[]> => {
   try {
     const { data, error } = await supabase.rpc('get_simple_logs');
@@ -62,22 +62,12 @@ export const loadLogsFromSupabase = async (): Promise<SimpleLog[]> => {
       };
     });
 
-    // Merge with localStorage
-    const localLogs: SimpleLog[] = JSON.parse(localStorage.getItem('simple_logs') || '[]');
+    // Update localStorage to match Supabase (cache only)
+    localStorage.setItem('simple_logs', JSON.stringify(supabaseLogs));
     
-    // Create a map to avoid duplicates (prefer Supabase version)
-    const logMap = new Map<string, SimpleLog>();
-    localLogs.forEach(log => logMap.set(log.id, log));
-    supabaseLogs.forEach(log => logMap.set(log.id, log));
-
-    const mergedLogs = Array.from(logMap.values());
-    
-    // Update localStorage with merged data
-    localStorage.setItem('simple_logs', JSON.stringify(mergedLogs));
-    
-    return mergedLogs;
+    return supabaseLogs;
   } catch (error) {
-    console.error('Error loading from Supabase, using localStorage:', error);
+    console.error('Error loading from Supabase, using localStorage fallback:', error);
     return JSON.parse(localStorage.getItem('simple_logs') || '[]');
   }
 };

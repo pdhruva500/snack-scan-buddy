@@ -64,7 +64,7 @@ const SimpleAdmin = () => {
   const [dailyRemaining, setDailyRemaining] = useState<Array<{ date: string; remaining: number }>>([]);
   // (no permanent deletes — we toggle a crossedOut flag instead)
 
-  // Load logs from localStorage (persist across refreshes)
+  // Load logs from Supabase (single source of truth)
   const loadLogs = async () => {
     const storedLogs = await loadLogsFromSupabase();
     const ordered = (storedLogs || []).slice().reverse();
