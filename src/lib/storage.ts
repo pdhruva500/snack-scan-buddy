@@ -27,8 +27,8 @@ export const getSnackLogs = async (): Promise<SnackLog[]> => {
       id: row.id,
       studentName: row.student_name,
       snackName: row.snack_name,
-      timestamp: row.timestamp,
-      scanType: row.scan_type as 'manual' | 'barcode' | undefined,
+      timestamp: row.timestamp ?? new Date().toISOString(),
+      scanType: 'manual' as const,
     }));
     
     // Update localStorage cache
@@ -71,24 +71,8 @@ export const addSnackLog = async (log: Omit<SnackLog, 'id' | 'timestamp'>): Prom
   localLogs.unshift(newLog);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(localLogs));
   
-  // Try to save to Supabase (don't block on failure)
-  try {
-    const { error } = await supabase
-      .from('snack_logs')
-      .insert({
-        id: newLog.id,
-        student_name: newLog.studentName,
-        snack_name: newLog.snackName,
-        timestamp: newLog.timestamp,
-        scan_type: newLog.scanType,
-      });
-    
-    if (error) {
-      console.error('Error saving to Supabase:', error);
-    }
-  } catch (error) {
-    console.error('Failed to sync with Supabase:', error);
-  }
+  // Note: Supabase insert requires user_id and snack_id which we don't have in simple mode
+  // This storage.ts is for authenticated mode only - simple mode uses simpleLogService
   
   return newLog;
 };
