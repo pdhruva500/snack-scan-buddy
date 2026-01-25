@@ -53,6 +53,39 @@ export type Database = {
         }
         Relationships: []
       }
+      simple_logs: {
+        Row: {
+          barcode: string | null
+          created_at: string
+          crossed_out: boolean
+          first_name: string
+          food_item: string
+          id: string
+          last_name: string
+          timestamp: string
+        }
+        Insert: {
+          barcode?: string | null
+          created_at?: string
+          crossed_out?: boolean
+          first_name: string
+          food_item: string
+          id?: string
+          last_name: string
+          timestamp?: string
+        }
+        Update: {
+          barcode?: string | null
+          created_at?: string
+          crossed_out?: boolean
+          first_name?: string
+          food_item?: string
+          id?: string
+          last_name?: string
+          timestamp?: string
+        }
+        Relationships: []
+      }
       snack_logs: {
         Row: {
           id: string

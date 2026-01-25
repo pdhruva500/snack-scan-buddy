@@ -24,16 +24,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { loadLogs as loadLogsFromBackend, toggleCrossedOut, deleteLog, clearAllLogs, SimpleLog } from "@/services/simpleLogService";
 
-interface LogEntry {
-  id: string;
-  firstName: string;
-  lastName: string;
-  foodItem: string;
-  timestamp: string;
-  barcode?: string | null;
-  crossedOut?: boolean;
-}
+type LogEntry = SimpleLog;
 
 const SimpleAdmin = () => {
   const [authorized, setAuthorized] = useState<boolean>(false);
@@ -63,13 +56,21 @@ const SimpleAdmin = () => {
   const [dailyRemaining, setDailyRemaining] = useState<Array<{ date: string; remaining: number }>>([]);
   // (no permanent deletes — we toggle a crossedOut flag instead)
 
-  // Load logs from localStorage
-  const loadLogs = () => {
-    const storedLogs = JSON.parse(localStorage.getItem("simple_logs") || "[]");
-    const ordered = (storedLogs || []).slice().reverse();
-    setLogs(ordered);
-    setFilteredLogs(ordered);
-    generateChartData(ordered);
+  // Load logs from backend (with localStorage fallback)
+  const loadLogs = async () => {
+    try {
+      const backendLogs = await loadLogsFromBackend();
+      setLogs(backendLogs);
+      setFilteredLogs(backendLogs);
+      generateChartData(backendLogs);
+    } catch (error) {
+      console.error('Error loading logs:', error);
+      // Fallback to localStorage
+      const storedLogs = JSON.parse(localStorage.getItem("simple_logs") || "[]");
+      setLogs(storedLogs);
+      setFilteredLogs(storedLogs);
+      generateChartData(storedLogs);
+    }
   };
 
   const generateChartData = (logsData: LogEntry[]) => {
@@ -151,15 +152,16 @@ const SimpleAdmin = () => {
     );
   }, [debouncedSearch, logs]);
 
-  const handleToggleCrossOut = (id: string) => {
+  const handleToggleCrossOut = async (id: string) => {
+    // Optimistic update
     const updatedLogs = logs.map((log) => (log.id === id ? { ...log, crossedOut: !log.crossedOut } : log));
-    // save in storage in original order (oldest-first)
-    localStorage.setItem("simple_logs", JSON.stringify(updatedLogs.slice().reverse()));
     setLogs(updatedLogs);
     setFilteredLogs((prev) => prev.map((l) => (l.id === id ? { ...l, crossedOut: !l.crossedOut } : l)));
     generateChartData(updatedLogs);
+    
+    // Sync to backend
+    await toggleCrossedOut(id);
     window.dispatchEvent(new Event("simple_log_removed"));
-    // No toasts for cross-out/undo — visual only
   };
 
   const promptDeleteLog = (id: string) => {
@@ -167,30 +169,35 @@ const SimpleAdmin = () => {
     setShowDeleteDialog(true);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     const id = deleteTargetId;
     if (!id) return setShowDeleteDialog(false);
 
-    const remainingStored = JSON.parse(localStorage.getItem('simple_logs') || '[]') as LogEntry[];
-    const filteredStored = remainingStored.filter((l) => l.id !== id);
-    localStorage.setItem('simple_logs', JSON.stringify(filteredStored));
-
-    const ordered = filteredStored.slice().reverse();
-    setLogs(ordered);
-    setFilteredLogs(ordered);
-    generateChartData(ordered);
+    // Optimistic update
+    const filteredStored = logs.filter((l) => l.id !== id);
+    setLogs(filteredStored);
+    setFilteredLogs(filteredStored);
+    generateChartData(filteredStored);
+    
+    // Sync to backend
+    await deleteLog(id);
+    
     window.dispatchEvent(new Event('simple_log_removed'));
     setShowDeleteDialog(false);
     setDeleteTargetId(null);
     toast.success('Log deleted');
   };
 
-  const handleClearAll = () => {
-    localStorage.removeItem('simple_logs');
-    localStorage.removeItem('simple_total_scans');
+  const handleClearAll = async () => {
+    // Optimistic update
     setLogs([]);
+    setFilteredLogs([]);
     setDailyRemaining([]);
     setShowClearDialog(false);
+    
+    // Sync to backend
+    await clearAllLogs();
+    
     window.dispatchEvent(new Event("simple_logs_cleared"));
     toast.success("All logs cleared");
   };
