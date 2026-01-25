@@ -99,13 +99,17 @@ const SimpleSignOut = () => {
     };
   }, []);
 
-  // Persist the draft whenever key parts change
+  // Persist the draft with debouncing to avoid slowing down typing
   useEffect(() => {
-    try {
-      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draftRef.current || {}));
-    } catch (e) {
-      console.error('Failed to persist draft on change:', e);
-    }
+    const timer = setTimeout(() => {
+      try {
+        sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draftRef.current || {}));
+      } catch (e) {
+        console.error('Failed to persist draft on change:', e);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
   }, [firstName, lastName, manualFoodItem, scannedItems]);
 
   // Update lunch restriction message every minute
