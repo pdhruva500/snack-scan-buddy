@@ -13,6 +13,7 @@ import { usePhysicalBarcodeScanner } from "@/hooks/usePhysicalBarcodeScanner";
 import { fetchFoodProduct } from "@/services/foodService";
 import { toast } from "sonner";
 import { isLunchTime, getLunchTimeMessage } from "@/lib/timeRestrictions";
+import { saveLog } from "@/services/simpleLogService";
 
 const SimpleSignOut = () => {
   const navigate = useNavigate();
@@ -225,34 +226,29 @@ const SimpleSignOut = () => {
     }
 
     // Create log entries for all items
-    const itemsToLog = [];
+    const itemsToLog: Array<{firstName: string; lastName: string; foodItem: string; barcode?: string | null}> = [];
     
     if (hasManualItem) {
       itemsToLog.push({
-        id: Date.now().toString(),
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         foodItem: manualFoodItem.trim(),
-        timestamp: new Date().toISOString(),
         barcode: null,
       });
     }
 
-    scannedItems.forEach((item, idx) => {
+    scannedItems.forEach((item) => {
       itemsToLog.push({
-        id: `${Date.now()}-${idx}`,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         foodItem: item.name,
-        timestamp: new Date().toISOString(),
         barcode: item.barcode,
       });
     });
 
-    // Store all entries in localStorage
-    const existingLogs = JSON.parse(localStorage.getItem("simple_logs") || "[]");
-    existingLogs.push(...itemsToLog);
-    localStorage.setItem("simple_logs", JSON.stringify(existingLogs));
+    // Save all entries to backend (and localStorage cache)
+    const savePromises = itemsToLog.map(item => saveLog(item));
+    Promise.all(savePromises).catch(err => console.error('Error saving logs:', err));
 
     // Update persistent total scans counter
     try {
@@ -260,7 +256,7 @@ const SimpleSignOut = () => {
       localStorage.setItem('simple_total_scans', String(prev + itemsToLog.length));
     } catch (e) {}
 
-    // Dispatch events for each log entry
+    // Dispatch events for UI updates
     itemsToLog.forEach(entry => {
       window.dispatchEvent(new CustomEvent("simple_log_added", { detail: entry }));
     });
