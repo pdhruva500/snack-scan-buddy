@@ -4,12 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Wifi, Scan } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { fetchFoodProduct } from "@/services/foodService";
 import { toast } from "sonner";
 import { usePhysicalBarcodeScanner } from "@/hooks/usePhysicalBarcodeScanner";
 import { FoodItemDisplay, FoodItemSkeleton } from "@/components/FoodItemDisplay";
-import { BarcodeScanner } from "@/components/BarcodeScanner";
 
 const SimpleScan = () => {
   const navigate = useNavigate();
@@ -17,7 +16,6 @@ const SimpleScan = () => {
   const [isLoadingProduct, setIsLoadingProduct] = useState(false);
   const [lastScan, setLastScan] = useState<string>("");
   const [scanCount, setScanCount] = useState(0);
-  const [showCameraScanner, setShowCameraScanner] = useState(false);
 
   const handlePhysicalBarcodeDetected = async (barcode: string) => {
     console.log("Physical scanner detected barcode:", barcode);
@@ -56,12 +54,6 @@ const SimpleScan = () => {
     timeout: 100,
   });
 
-  const handleCameraDetected = async (barcode: string) => {
-    // Close the camera modal quickly to stop camera stream UI
-    setShowCameraScanner(false);
-    // Reuse same logic as physical scanner
-    await handlePhysicalBarcodeDetected(barcode);
-  };
 
   const DRAFT_KEY = 'simple_signout_draft';
 
@@ -145,11 +137,7 @@ const SimpleScan = () => {
                 <Scan className="h-5 w-5" />
                 <span>Scanner is listening for barcodes...</span>
               </div>
-              <div className="mt-3">
-                <Button variant="outline" size="sm" onClick={() => setShowCameraScanner(true)}>
-                  Open Camera Scanner
-                </Button>
-              </div>
+              {/* Camera scanner option removed for testing */}
               
               {scanCount > 0 && (
                 <div className="pt-4 border-t">
@@ -236,14 +224,7 @@ const SimpleScan = () => {
           </motion.div>
         )}
       </div>
-      <AnimatePresence>
-        {showCameraScanner && (
-          <BarcodeScanner
-            onDetected={handleCameraDetected}
-            onClose={() => setShowCameraScanner(false)}
-          />
-        )}
-      </AnimatePresence>
+      {/* Camera scanner removed for testing */}
     </div>
   );
 };

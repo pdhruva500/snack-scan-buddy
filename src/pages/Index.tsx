@@ -117,9 +117,7 @@ const Index = () => {
             <p className="text-sm md:text-base text-white/80 max-w-2xl mx-auto mb-2">
               Scan barcodes or enter manually
             </p>
-            <p className="text-xs md:text-sm text-white/60">
-              Created by Prasham Dhruva
-            </p>
+            
           </motion.div>
           
           <motion.div

@@ -65,3 +65,17 @@ npm run preview
    - Page components in `src/pages/`
    - Shared utilities in `src/lib/`
    - Supabase types in `src/integrations/supabase/types.ts`
+
+
+
+
+Kiosk Account login
+
+EastsideKiosk@outlook.com
+GoEalges2026!
+
+Loaner Laptop Login: 
+
+EPSIntern 
+GoEagles2026!
+

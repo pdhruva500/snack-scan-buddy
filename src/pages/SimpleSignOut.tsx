@@ -305,16 +305,11 @@ const SimpleSignOut = () => {
             transition={{ delay: 0.2, duration: 0.6 }}
             className="text-center text-white mb-8"
           >
-            <div className="flex items-center justify-center gap-3 mb-4 flex-nowrap">
+            <div className="flex items-center justify-center gap-3 mb-4 flex-nowrap mt-2">
               <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent whitespace-nowrap">Eastside Eats</h1>
               <img src="/eaglelogo.png" alt="Eastside Eats Eagle Logo" className="w-16 h-16 md:w-20 md:h-20" />
             </div>
-            <p className="text-lg md:text-xl mb-2 font-light">
-              Quick snack logging for tablets
-            </p>
-            <p className="text-xs md:text-sm text-white/60">
-              Created by Prasham Dhruva
-            </p>
+            
           </motion.div>
 
           <motion.div
@@ -471,12 +466,14 @@ const SimpleSignOut = () => {
         </div>
       </motion.div>
 
-      {/* Camera scanner moved to /simple-scan; physical scanner fills form directly. */}
+        {/* Camera scanner moved to /simple-scan; physical scanner fills form directly. */}
         {/* Small total scans counter */}
         <div className="fixed right-4 bottom-4 bg-white/95 text-sm text-muted-foreground px-3 py-1 rounded-full shadow-lg flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Total scans</span>
           <span className="font-semibold text-sm">{totalScans}</span>
         </div>
+
+        {/* Author credit removed per request */}
       </div>
   );
 };
