@@ -25,6 +25,12 @@ export const usePhysicalBarcodeScanner = ({
   const barcodeBuffer = useRef<string>("");
   const lastInputTime = useRef<number>(0);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const onDetectedRef = useRef(onDetected);
+
+  // Keep ref in sync without re-subscribing the listener
+  useEffect(() => {
+    onDetectedRef.current = onDetected;
+  }, [onDetected]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -64,12 +70,11 @@ export const usePhysicalBarcodeScanner = ({
         const barcode = barcodeBuffer.current.trim();
         if (barcode) {
           console.log("Physical barcode scanner detected:", barcode);
-          onDetected(barcode);
+          onDetectedRef.current(barcode);
         }
         barcodeBuffer.current = "";
         return;
       }
-
       // Ignore modifier keys and special keys
       if (
         event.key.length === 1 &&
@@ -104,5 +109,5 @@ export const usePhysicalBarcodeScanner = ({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [enabled, onDetected, minLength, timeout]);
+  }, [enabled, minLength, timeout]);
 };
