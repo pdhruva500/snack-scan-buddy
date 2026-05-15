@@ -24,7 +24,7 @@ export const usePhysicalBarcodeScanner = ({
 }: UsePhysicalBarcodeScannerProps) => {
   const barcodeBuffer = useRef<string>("");
   const lastInputTime = useRef<number>(0);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onDetectedRef = useRef(onDetected);
 
   // Keep ref in sync without re-subscribing the listener
