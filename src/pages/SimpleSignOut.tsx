@@ -311,9 +311,12 @@ const SimpleSignOut = () => {
                 alt="Eastside Eats Eagle Logo"
                 className="h-24 w-24 object-contain md:h-28 md:w-28"
               />
-              <h1 className="text-5xl font-bold leading-tight bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent md:text-6xl">
-                Eastside Eats
-              </h1>
+              <img
+                src="/eastside-eats-logo.svg"
+                alt="Eastside Eats"
+                className="h-auto w-72 max-w-full object-contain md:w-80"
+              />
+              <h1 className="sr-only">Eastside Eats</h1>
             </div>
             
           </motion.div>

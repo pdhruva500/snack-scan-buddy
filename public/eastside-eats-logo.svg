@@ -1,0 +1,27 @@
+<svg width="520" height="128" viewBox="0 0 520 128" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Eastside Eats</title>
+  <desc id="desc">Eastside Eats wordmark logo</desc>
+  <defs>
+    <linearGradient id="wordmark" x1="18" y1="22" x2="502" y2="106" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#D8F1FF"/>
+    </linearGradient>
+    <filter id="shadow" x="-12" y="-12" width="544" height="152" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <text
+      x="260"
+      y="73"
+      text-anchor="middle"
+      fill="url(#wordmark)"
+      font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+      font-size="72"
+      font-weight="800"
+      letter-spacing="0"
+    >
+      Eastside Eats
+    </text>
+  </g>
+</svg>
