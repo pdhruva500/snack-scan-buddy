@@ -130,7 +130,7 @@ const SimpleSignOut = () => {
       const productData = await fetchFoodProduct(barcode);
       if (productData && productData.product && productData.product.product_name) {
         try {
-          const { normalizeProductName } = require("@/lib/nameMap");
+          const { normalizeProductName } = ((window as any).require?.("@/lib/nameMap") ?? (() => { throw new Error("no require"); })());
           const normalizedName = normalizeProductName(productData.product.product_name, productData.product.brands);
           
           const newItem = {

@@ -24,7 +24,7 @@ export const usePhysicalBarcodeScanner = ({
 }: UsePhysicalBarcodeScannerProps) => {
   const barcodeBuffer = useRef<string>("");
   const lastInputTime = useRef<number>(0);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onDetectedRef = useRef(onDetected);
 
   // Keep ref in sync without re-subscribing the listener
@@ -82,8 +82,9 @@ export const usePhysicalBarcodeScanner = ({
         !event.altKey &&
         !event.metaKey
       ) {
-        // Only prevent default if we're in the middle of a scan or not in an input
-        if (isRapidInput || !isInInputField) {
+        // Never preventDefault while focus is in an input/textarea — that drops
+        // characters and causes laggy typing. Only block keys when NOT in an input.
+        if (!isInInputField) {
           event.preventDefault();
         }
         barcodeBuffer.current += event.key;
