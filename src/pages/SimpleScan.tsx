@@ -29,7 +29,7 @@ const SimpleScan = () => {
         setScannedProduct(productData.product);
         toast.success(`Scanned: ${productData.product.product_name}`);
         try {
-          const { normalizeProductName } = require("@/lib/nameMap");
+          const { normalizeProductName } = ((window as any).require?.("@/lib/nameMap") ?? (() => { throw new Error("no require"); })());
           // replace displayed name in product for the scanner preview
           productData.product.product_name = normalizeProductName(productData.product.product_name, productData.product.brands);
         } catch {}
@@ -66,7 +66,7 @@ const SimpleScan = () => {
       draft.scannedItems = draft.scannedItems || [];
       
       try {
-        const { normalizeProductName } = require("@/lib/nameMap");
+        const { normalizeProductName } = ((window as any).require?.("@/lib/nameMap") ?? (() => { throw new Error("no require"); })());
         const normalizedName = normalizeProductName(product.product_name, product.brands);
         
         draft.scannedItems.push({
