@@ -305,9 +305,15 @@ const SimpleSignOut = () => {
             transition={{ delay: 0.2, duration: 0.6 }}
             className="text-center text-white mb-8"
           >
-            <div className="flex items-center justify-center gap-3 mb-4 flex-nowrap mt-2">
-              <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent whitespace-nowrap">Eastside Eats</h1>
-              <img src="/eaglelogo.png" alt="Eastside Eats Eagle Logo" className="w-16 h-16 md:w-20 md:h-20" />
+            <div className="mx-auto mb-4 mt-2 flex flex-col items-center justify-center gap-3 text-center">
+              <img
+                src="/eaglelogo.png"
+                alt="Eastside Eats Eagle Logo"
+                className="h-24 w-24 object-contain md:h-28 md:w-28"
+              />
+              <h1 className="text-5xl font-bold leading-tight bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent md:text-6xl">
+                Eastside Eats
+              </h1>
             </div>
             
           </motion.div>
