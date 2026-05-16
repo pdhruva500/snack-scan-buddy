@@ -305,14 +305,14 @@ const SimpleSignOut = () => {
         <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.16)_0,rgba(255,255,255,0.04)_34%,rgba(255,255,255,0)_35%)]" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-slate-950/45 to-black/75" />
         
-  <div className="relative z-10 w-full max-w-md px-4 py-12">
+  <div className="relative z-10 w-full max-w-md px-4 py-10">
           <motion.div
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.6 }}
             className="text-center text-white mb-8"
           >
-            <div className="mx-auto mb-4 mt-2 flex flex-col items-center justify-center gap-3 text-center">
+            <div className="mx-auto mb-5 mt-2 flex flex-col items-center justify-center gap-2 text-center">
               <img
                 src="/eaglelogo.png"
                 alt="Eastside Eats Eagle Logo"
@@ -321,7 +321,7 @@ const SimpleSignOut = () => {
               <img
                 src="/eastside-eats-logo.svg"
                 alt="Eastside Eats"
-                className="h-auto w-full max-w-md object-contain"
+                className="h-auto w-[calc(100%+2.5rem)] max-w-none object-contain md:w-[calc(100%+3.25rem)]"
               />
               <h1 className="sr-only">Eastside Eats</h1>
             </div>
@@ -349,7 +349,7 @@ const SimpleSignOut = () => {
                 </div>
               </motion.div>
             )}
-            <Card className="border-white/40 bg-white/90 shadow-[0_24px_80px_rgba(0,0,0,0.38)] backdrop-blur-xl">
+            <Card className="border-white/45 bg-white/90 shadow-[0_24px_80px_rgba(0,0,0,0.38)] backdrop-blur-xl ring-1 ring-white/30">
               <CardHeader>
                 <CardTitle className="text-2xl">Sign Out a Snack</CardTitle>
                 <CardDescription>
@@ -370,6 +370,7 @@ const SimpleSignOut = () => {
                         id="firstName"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
+                        className="bg-white/80 focus-visible:ring-primary/60"
                         required
                       />
                     </div>
@@ -380,6 +381,7 @@ const SimpleSignOut = () => {
                         
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
+                        className="bg-white/80 focus-visible:ring-primary/60"
                         required
                       />
                     </div>
@@ -393,6 +395,7 @@ const SimpleSignOut = () => {
                         placeholder="Type food name or use scanner"
                         value={manualFoodItem}
                         onChange={(e) => setManualFoodItem(e.target.value)}
+                        className="bg-white/80 focus-visible:ring-primary/60"
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
