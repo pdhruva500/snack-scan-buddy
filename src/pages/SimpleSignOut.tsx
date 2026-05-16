@@ -302,8 +302,8 @@ const SimpleSignOut = () => {
           backgroundBlendMode: "multiply, normal",
         }}
       >
-        <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.16)_0,rgba(255,255,255,0.04)_34%,rgba(255,255,255,0)_35%)]" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-slate-950/45 to-black/75" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(125,211,252,0.32),transparent_32%),linear-gradient(120deg,rgba(255,255,255,0.18)_0,rgba(255,255,255,0.05)_34%,rgba(255,255,255,0)_35%)]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-slate-950/42 to-black/78" />
         
   <div className="relative z-10 w-full max-w-md px-4 py-10">
           <motion.div
@@ -312,17 +312,25 @@ const SimpleSignOut = () => {
             transition={{ delay: 0.2, duration: 0.6 }}
             className="text-center text-white mb-8"
           >
-            <div className="mx-auto mb-5 mt-2 flex flex-col items-center justify-center gap-2 text-center">
-              <img
-                src="/eaglelogo.png"
-                alt="Eastside Eats Eagle Logo"
-                className="h-24 w-24 object-contain md:h-28 md:w-28"
-              />
+            <div className="mx-auto mb-6 mt-7 flex w-[calc(100%+2.25rem)] max-w-none items-center justify-center gap-2 text-center md:w-[calc(100%+3rem)] md:gap-3">
               <img
                 src="/eastside-eats-logo.svg"
                 alt="Eastside Eats"
-                className="h-auto w-[calc(100%+2.5rem)] max-w-none object-contain md:w-[calc(100%+3.25rem)]"
+                className="h-auto min-w-0 flex-1 object-contain opacity-95 drop-shadow-[0_10px_24px_rgba(0,0,0,0.36)]"
               />
+              <div className="relative flex shrink-0 items-center justify-center">
+                <img
+                  src="/eaglelogo.png"
+                  alt=""
+                  aria-hidden="true"
+                  className="absolute h-20 w-20 scale-125 object-contain opacity-30 blur-md md:h-24 md:w-24"
+                />
+                <img
+                  src="/eaglelogo.png"
+                  alt="Eastside Eats Eagle Logo"
+                  className="relative h-16 w-16 object-contain opacity-95 drop-shadow-[0_8px_20px_rgba(0,0,0,0.45)] md:h-20 md:w-20"
+                />
+              </div>
               <h1 className="sr-only">Eastside Eats</h1>
             </div>
             
@@ -349,7 +357,7 @@ const SimpleSignOut = () => {
                 </div>
               </motion.div>
             )}
-            <Card className="border-white/45 bg-white/90 shadow-[0_24px_80px_rgba(0,0,0,0.38)] backdrop-blur-xl ring-1 ring-white/30">
+            <Card className="backdrop-blur-sm bg-background/95 shadow-2xl">
               <CardHeader>
                 <CardTitle className="text-2xl">Sign Out a Snack</CardTitle>
                 <CardDescription>
@@ -370,7 +378,6 @@ const SimpleSignOut = () => {
                         id="firstName"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
-                        className="bg-white/80 focus-visible:ring-primary/60"
                         required
                       />
                     </div>
@@ -381,7 +388,6 @@ const SimpleSignOut = () => {
                         
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
-                        className="bg-white/80 focus-visible:ring-primary/60"
                         required
                       />
                     </div>
@@ -395,7 +401,6 @@ const SimpleSignOut = () => {
                         placeholder="Type food name or use scanner"
                         value={manualFoodItem}
                         onChange={(e) => setManualFoodItem(e.target.value)}
-                        className="bg-white/80 focus-visible:ring-primary/60"
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
