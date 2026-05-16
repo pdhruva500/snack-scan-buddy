@@ -294,9 +294,16 @@ const SimpleSignOut = () => {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
         className="relative min-h-screen bg-cover bg-center flex items-center justify-center overflow-hidden"
-        style={{ backgroundImage: `url(${cafeteriaHero})` }}
+        style={{
+          backgroundImage: `
+            linear-gradient(135deg, rgba(3, 18, 34, 0.88), rgba(14, 89, 120, 0.46) 46%, rgba(5, 35, 48, 0.9)),
+            url(${cafeteriaHero})
+          `,
+          backgroundBlendMode: "multiply, normal",
+        }}
       >
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70" />
+        <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.16)_0,rgba(255,255,255,0.04)_34%,rgba(255,255,255,0)_35%)]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-slate-950/45 to-black/75" />
         
   <div className="relative z-10 w-full max-w-md px-4 py-12">
           <motion.div
@@ -314,7 +321,7 @@ const SimpleSignOut = () => {
               <img
                 src="/eastside-eats-logo.svg"
                 alt="Eastside Eats"
-                className="h-auto w-72 max-w-full object-contain md:w-80"
+                className="h-auto w-full max-w-md object-contain"
               />
               <h1 className="sr-only">Eastside Eats</h1>
             </div>
@@ -342,7 +349,7 @@ const SimpleSignOut = () => {
                 </div>
               </motion.div>
             )}
-            <Card className="backdrop-blur-sm bg-background/95 shadow-2xl">
+            <Card className="border-white/40 bg-white/90 shadow-[0_24px_80px_rgba(0,0,0,0.38)] backdrop-blur-xl">
               <CardHeader>
                 <CardTitle className="text-2xl">Sign Out a Snack</CardTitle>
                 <CardDescription>
