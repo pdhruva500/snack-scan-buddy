@@ -13,7 +13,7 @@ import {
 import { UserCircle2, Trash2, ArrowLeft, Download, RefreshCw, Search, Package, Users, TrendingUp, Strikethrough } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { buildExcelWorkbook, downloadExcelWorkbook } from "@/lib/csvExport";
+import { buildCsv, downloadCsv, padCsvHeaders } from "@/lib/csvExport";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -222,7 +222,7 @@ const SimpleAdmin = () => {
     const headers = ["First Name", "Last Name", "Food Item", "Time"];
     const rows = logs.map((log) => [log.firstName, log.lastName, log.foodItem, new Date(log.timestamp).toLocaleString()]);
 
-    downloadExcelWorkbook(buildExcelWorkbook(headers, rows, [160, 160, 360, 220]));
+    downloadCsv(buildCsv(padCsvHeaders(headers, [20, 20, 42, 28]), rows));
     toast.success('Logs exported successfully');
   };
 

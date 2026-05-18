@@ -1,6 +1,6 @@
 // Storage utilities for snack logs (Supabase + localStorage fallback)
 import { supabase } from '@/integrations/supabase/client';
-import { buildCsv, buildExcelWorkbook, downloadExcelWorkbook, getLogsExportFilename } from './csvExport';
+import { buildCsv, downloadCsv as downloadCsvFile, getLogsExportFilename, padCsvHeaders } from './csvExport';
 
 export interface SnackLog {
   id: string;
@@ -109,20 +109,12 @@ export const exportLogsToCSV = async (): Promise<string> => {
     log.scanType || 'manual'
   ]);
   
-  return buildCsv(headers, rows);
+  return buildCsv(padCsvHeaders(headers, [24, 42, 28, 16]), rows);
 };
 
 export const downloadCSV = async (filename: string = getLogsExportFilename()): Promise<void> => {
-  const logs = await getSnackLogs();
-  if (logs.length === 0) return;
-
-  const headers = ['Student Name', 'Snack', 'Time', 'Scan Type'];
-  const rows = logs.map(log => [
-    log.studentName,
-    log.snackName,
-    new Date(log.timestamp).toLocaleString(),
-    log.scanType || 'manual'
-  ]);
+  const csv = await exportLogsToCSV();
+  if (!csv) return;
   
-  downloadExcelWorkbook(buildExcelWorkbook(headers, rows, [220, 340, 220, 140]), filename);
+  downloadCsvFile(csv, filename);
 };
