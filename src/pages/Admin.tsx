@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
-import { buildCsv, downloadCsv } from "@/lib/csvExport";
+import { buildExcelWorkbook, downloadExcelWorkbook } from "@/lib/csvExport";
 import { toast } from "sonner";
 import { Download, RefreshCw, Loader2, Search, LogOut, TrendingUp, Users, Package, Trash } from "lucide-react";
 import { motion } from "framer-motion";
@@ -156,7 +156,7 @@ const Admin = () => {
       new Date(log.timestamp).toLocaleString(),
     ]);
 
-    downloadCsv(buildCsv(headers, rows));
+    downloadExcelWorkbook(buildExcelWorkbook(headers, rows, [220, 340, 220]));
 
     toast.success("Logs exported successfully");
   };
