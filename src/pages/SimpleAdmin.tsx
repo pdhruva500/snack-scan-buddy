@@ -219,10 +219,18 @@ const SimpleAdmin = () => {
       return;
     }
 
-    const headers = ["First Name", "Last Name", "Food Item", "Time"];
-    const rows = logs.map((log) => [log.firstName, log.lastName, log.foodItem, new Date(log.timestamp).toLocaleString()]);
+    const headers = ["First Name", "", "Last Name", "", "Food Item", "", "Time/Date"];
+    const rows = logs.map((log) => [
+      log.firstName,
+      "",
+      log.lastName,
+      "",
+      log.foodItem,
+      "",
+      new Date(log.timestamp).toLocaleString(),
+    ]);
 
-    downloadCsv(buildCsv(padCsvHeaders(headers, [20, 20, 42, 28]), rows));
+    downloadCsv(buildCsv(headers, rows));
     toast.success('Logs exported successfully');
   };
 
