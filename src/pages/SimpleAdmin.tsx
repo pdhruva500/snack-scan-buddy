@@ -13,6 +13,7 @@ import {
 import { UserCircle2, Trash2, ArrowLeft, Download, RefreshCw, Search, Package, Users, TrendingUp, Strikethrough } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { buildCsv, downloadCsv } from "@/lib/csvExport";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -219,19 +220,9 @@ const SimpleAdmin = () => {
     }
 
     const headers = ["First Name", "Last Name", "Food Item", "Time"];
-    const rows = logs.map((log) => [log.firstName + '', log.lastName + '', log.foodItem + '', new Date(log.timestamp).toLocaleString()]);
+    const rows = logs.map((log) => [log.firstName, log.lastName, log.foodItem, new Date(log.timestamp).toLocaleString()]);
 
-    const csvContent = [headers.join(','), ...rows.map(r => r.map(cell => `"${cell.replace(/"/g, '""')}"`).join(','))].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `eastside-eats-simple-logs-${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+    downloadCsv(buildCsv(headers, rows));
     toast.success('Logs exported successfully');
   };
 

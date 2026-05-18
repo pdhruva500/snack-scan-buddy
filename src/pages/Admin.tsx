@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
+import { buildCsv, downloadCsv } from "@/lib/csvExport";
 import { toast } from "sonner";
 import { Download, RefreshCw, Loader2, Search, LogOut, TrendingUp, Users, Package, Trash } from "lucide-react";
 import { motion } from "framer-motion";
@@ -155,20 +156,7 @@ const Admin = () => {
       new Date(log.timestamp).toLocaleString(),
     ]);
 
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `eastside-eats-logs-${new Date().toISOString().split("T")[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+    downloadCsv(buildCsv(headers, rows));
 
     toast.success("Logs exported successfully");
   };
