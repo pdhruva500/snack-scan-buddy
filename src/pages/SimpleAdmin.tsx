@@ -13,7 +13,7 @@ import {
 import { UserCircle2, Trash2, ArrowLeft, Download, RefreshCw, Search, Package, Users, TrendingUp, Strikethrough } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { buildCsv, downloadCsv, padCsvHeaders } from "@/lib/csvExport";
+import { buildCsv, downloadCsv, formatExportDateTime } from "@/lib/csvExport";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -219,7 +219,7 @@ const SimpleAdmin = () => {
       return;
     }
 
-    const headers = ["First Name", "", "Last Name", "", "Food Item", "", "Time/Date"];
+    const headers = ["First Name", "", "Last Name", "", "Food Item", "", "Date/Time"];
     const rows = logs.map((log) => [
       log.firstName,
       "",
@@ -227,7 +227,7 @@ const SimpleAdmin = () => {
       "",
       log.foodItem,
       "",
-      new Date(log.timestamp).toLocaleString(),
+      formatExportDateTime(log.timestamp),
     ]);
 
     downloadCsv(buildCsv(headers, rows));

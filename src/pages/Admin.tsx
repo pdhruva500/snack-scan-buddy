@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
-import { buildCsv, downloadCsv, padCsvHeaders } from "@/lib/csvExport";
+import { buildCsv, downloadCsv, formatExportDateTime, padCsvHeaders } from "@/lib/csvExport";
 import { toast } from "sonner";
 import { Download, RefreshCw, Loader2, Search, LogOut, TrendingUp, Users, Package, Trash } from "lucide-react";
 import { motion } from "framer-motion";
@@ -149,11 +149,11 @@ const Admin = () => {
       return;
     }
 
-    const headers = ["Student Name", "Snack", "Time"];
+    const headers = ["Student Name", "Snack", "Date/Time"];
     const rows = logs.map((log) => [
       log.student_name,
       log.snack_name,
-      new Date(log.timestamp).toLocaleString(),
+      formatExportDateTime(log.timestamp),
     ]);
 
     downloadCsv(buildCsv(padCsvHeaders(headers, [24, 42, 28]), rows));

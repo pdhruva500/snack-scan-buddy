@@ -26,6 +26,23 @@ export const formatLogsExportDate = (date: Date = new Date()): string =>
 
 export const getLogsExportFilename = (date: Date = new Date()): string => `${formatLogsExportDate(date)} Logs.csv`;
 
+export const formatExportDateTime = (dateInput: string | Date): string => {
+  const date = new Date(dateInput);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleString("en-US", {
+    month: "numeric",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
+
 const escapeCsvCell = (cell: unknown): string => {
   const cleaned = repairMojibake(String(cell ?? "")).replace(/\r?\n/g, " ");
   return `"${cleaned.replace(/"/g, '""')}"`;
