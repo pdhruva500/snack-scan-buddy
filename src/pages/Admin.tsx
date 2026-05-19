@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { buildCsv, downloadCsv, formatExportDateTime, padCsvHeaders } from "@/lib/csvExport";
 import { toast } from "sonner";
-import { Download, RefreshCw, Loader2, Search, LogOut, TrendingUp, Users, Package, Trash } from "lucide-react";
+import { ArrowLeft, ArrowRight, Download, RefreshCw, Loader2, Search, LogOut, TrendingUp, Users, Package, Trash } from "lucide-react";
 import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { addDaysToDateKey, formatLogPageDate, getTodayDateKey, filterLogsByDate } from "@/lib/logDayPages";
 
 interface SnackLog {
   id: string;
@@ -25,6 +26,7 @@ const Admin = () => {
   const [filteredLogs, setFilteredLogs] = useState<SnackLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedDateKey, setSelectedDateKey] = useState(getTodayDateKey());
   
   const [chartData, setChartData] = useState<Array<{ date: string; count: number }>>([]);
   const [selectedLog, setSelectedLog] = useState<SnackLog | null>(null);
@@ -32,6 +34,18 @@ const Admin = () => {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [showSimpleLogs, setShowSimpleLogs] = useState(false);
+
+  // Filter logs by selected date and search term
+  const displayedLogs = useMemo(() => {
+    const logsForDate = filterLogsByDate(logs, selectedDateKey);
+    if (!searchTerm) return logsForDate;
+    
+    return logsForDate.filter(log =>
+      log.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.snack_name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [logs, selectedDateKey, searchTerm]);
+
   const loadLogs = async () => {
     setLoading(true);
     try {
@@ -43,7 +57,6 @@ const Admin = () => {
 
       if (error) throw error;
       setLogs(data || []);
-      setFilteredLogs(data || []);
       generateChartData(data || []);
     } catch (error) {
       console.error("Error loading logs:", error);
@@ -106,9 +119,7 @@ const Admin = () => {
     // Optimistic UI: remove the row immediately
     setSelectedLog(null);
     const prevLogs = logs;
-    const prevFiltered = filteredLogs;
     setLogs((prev) => prev.filter((l) => l.id !== logId));
-    setFilteredLogs((prev) => prev.filter((l) => l.id !== logId));
 
     try {
       // Ask Supabase to return deleted rows to verify it actually deleted
@@ -123,7 +134,6 @@ const Admin = () => {
       if (!deleted || deleted.length === 0) {
         // Nothing was deleted on the server (policy or already removed). Revert UI and resync.
         setLogs(prevLogs);
-        setFilteredLogs(prevFiltered);
         await loadLogs();
         toast.error("Could not delete log. It may already be removed or you may not have permission.");
         return;
@@ -137,7 +147,6 @@ const Admin = () => {
       console.error("Error deleting log:", error);
       // Revert optimistic change on failure
       setLogs(prevLogs);
-      setFilteredLogs(prevFiltered);
       toast.error("Failed to delete log");
     }
   };
@@ -327,10 +336,41 @@ const Admin = () => {
           <Card>
             <CardHeader>
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div>
+                <div className="flex-1">
                   <CardTitle className="text-lg md:text-xl">All Snack Logs</CardTitle>
-                  <CardDescription className="text-sm">Total logs: {logs.length}</CardDescription>
+                  <CardDescription className="text-sm">
+                    <span className="font-semibold text-foreground">{formatLogPageDate(selectedDateKey)}</span>
+                    <span className="text-muted-foreground"> • {displayedLogs.length} log(s)</span>
+                  </CardDescription>
                 </div>
+                
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => setSelectedDateKey(addDaysToDateKey(selectedDateKey, -1))}
+                    variant="outline"
+                    size="sm"
+                    title="View previous day"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    onClick={() => setSelectedDateKey(getTodayDateKey())}
+                    variant="outline"
+                    size="sm"
+                    title="Jump to today"
+                  >
+                    Today
+                  </Button>
+                  <Button
+                    onClick={() => setSelectedDateKey(addDaysToDateKey(selectedDateKey, 1))}
+                    variant="outline"
+                    size="sm"
+                    title="View next day"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+
                 <div className="relative w-full md:w-64">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -347,9 +387,9 @@ const Admin = () => {
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-              ) : filteredLogs.length === 0 ? (
+              ) : displayedLogs.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">
-                  {searchTerm ? "No matching logs found." : "No snack logs yet."}
+                  {searchTerm ? "No matching logs found for this day." : "No snack logs for this day yet."}
                 </p>
               ) : (
                 <div className="overflow-x-auto">
@@ -362,7 +402,7 @@ const Admin = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredLogs.map((log) => (
+                      {displayedLogs.map((log) => (
                         <TableRow 
                           key={log.id}
                           className="cursor-pointer hover:bg-muted/50 transition-colors"
@@ -469,9 +509,7 @@ const Admin = () => {
                     onClick={async () => {
                       setClearing(true);
                       const prevLogs = logs;
-                      const prevFiltered = filteredLogs;
                       setLogs([]);
-                      setFilteredLogs([]);
 
                       try {
                         // Fetch all IDs first, then delete by id list - this makes errors clearer
@@ -501,7 +539,6 @@ const Admin = () => {
                         if (!deleted || deleted.length === 0) {
                           // Revert and surface permission-like message
                           setLogs(prevLogs);
-                          setFilteredLogs(prevFiltered);
                           await loadLogs();
                           toast.error("Could not clear logs. You may not have permission to delete these rows.");
                           setClearing(false);
@@ -516,7 +553,6 @@ const Admin = () => {
                       } catch (err) {
                         console.error("Error clearing logs:", err);
                         setLogs(prevLogs);
-                        setFilteredLogs(prevFiltered);
                         toast.error("Failed to clear logs. Check permissions or try again.");
                         setClearing(false);
                         setShowClearConfirm(false);
