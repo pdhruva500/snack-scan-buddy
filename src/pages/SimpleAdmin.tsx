@@ -235,13 +235,15 @@ const SimpleAdmin = () => {
     .map(([name, count]) => ({ name, count }));
 
   const handleDownloadCSV = () => {
-    if (logs.length === 0) {
-      toast.error("No logs to export");
+    const dayLogs = filterLogsByDate(filteredLogs, selectedDateKey);
+
+    if (dayLogs.length === 0) {
+      toast.error("No logs to export for this day");
       return;
     }
 
     const headers = ["First Name", "", "Last Name", "", "Food Item", "", "Date/Time"];
-    const rows = logs.map((log) => [
+    const rows = dayLogs.map((log) => [
       log.firstName,
       "",
       log.lastName,
