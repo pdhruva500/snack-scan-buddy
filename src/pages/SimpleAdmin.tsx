@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { UserCircle2, Trash2, ArrowLeft, ArrowRight, Download, RefreshCw, Search, Package, Users, TrendingUp, Strikethrough } from "lucide-react";
+import { UserCircle2, Trash2, ArrowLeft, ArrowRight, Calendar as CalendarIcon, Download, RefreshCw, Search, Package, Users, TrendingUp, Strikethrough } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { buildCsv, downloadCsv, formatExportDateTime } from "@/lib/csvExport";
@@ -24,6 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { loadLogs as loadLogsFromBackend, toggleCrossedOut, deleteLog, clearAllLogs, SimpleLog } from "@/services/simpleLogService";
 import { Calendar } from "@/components/ui/calendar";
@@ -367,6 +368,25 @@ const SimpleAdmin = () => {
                       </CardDescription>
                     </div>
                     <div className="flex gap-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            title="Pick a date"
+                            aria-label="Pick a date"
+                          >
+                            <CalendarIcon className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={handleSelectDate}
+                          />
+                        </PopoverContent>
+                      </Popover>
                       <Button
                         onClick={() => {
                           setSelectedDateKey(addDaysToDateKey(selectedDateKey, -1));
@@ -489,20 +509,6 @@ const SimpleAdmin = () => {
                       ))}
                     </div>
                   )}
-                </CardContent>
-              </Card>
-              <Card className="mt-4">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Jump to Date</CardTitle>
-                  <Package className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent className="p-0">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={handleSelectDate}
-                    className="w-full"
-                  />
                 </CardContent>
               </Card>
             </div>
