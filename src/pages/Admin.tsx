@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
-import { buildCsv, downloadCsv, formatExportDateTime, padCsvHeaders } from "@/lib/csvExport";
+import { buildCsv, downloadCsv } from "@/lib/csvExport";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowRight, Download, RefreshCw, Loader2, Search, LogOut, TrendingUp, Users, Package, Trash } from "lucide-react";
 import { motion } from "framer-motion";
@@ -23,7 +23,6 @@ interface SnackLog {
 const Admin = () => {
   const navigate = useNavigate();
   const [logs, setLogs] = useState<SnackLog[]>([]);
-  const [filteredLogs, setFilteredLogs] = useState<SnackLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDateKey, setSelectedDateKey] = useState(getTodayDateKey());
@@ -162,10 +161,17 @@ const Admin = () => {
     const rows = logs.map((log) => [
       log.student_name,
       log.snack_name,
-      formatExportDateTime(log.timestamp),
+      new Date(log.timestamp).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      }),
     ]);
 
-    downloadCsv(buildCsv(padCsvHeaders(headers, [24, 42, 28]), rows));
+    downloadCsv(buildCsv(headers, rows));
 
     toast.success("Logs exported successfully");
   };
