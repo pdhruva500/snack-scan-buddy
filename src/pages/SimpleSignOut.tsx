@@ -24,9 +24,16 @@ const SimpleSignOut = () => {
   const [confirmation, setConfirmation] = useState<any>(null);
   const [lunchRestrictionMessage, setLunchRestrictionMessage] = useState<string | null>(null);
   const [totalScans, setTotalScans] = useState<number>(0);
+  const [unmatchedBarcode, setUnmatchedBarcode] = useState<string | null>(null);
 
   const DRAFT_KEY = "simple_signout_draft";
   const draftRef = useRef<any>({});
+
+  const stripBarcodeFromName = (name: string, barcode?: string | null) => {
+    if (!barcode) return name;
+    const escaped = barcode.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return name.replace(new RegExp(escaped, "g"), "").replace(/\s{2,}/g, " ").trim();
+  };
 
   // keep ref updated with latest values so cleanup can save current draft
   useEffect(() => {
@@ -43,7 +50,15 @@ const SimpleSignOut = () => {
         if (draft.lastName) setLastName(draft.lastName);
         if (draft.manualFoodItem) setManualFoodItem(draft.manualFoodItem);
         if (draft.scannedItems && Array.isArray(draft.scannedItems)) {
-          setScannedItems(draft.scannedItems);
+          setScannedItems(
+            draft.scannedItems.map((item: any) => ({
+              ...item,
+              name: stripBarcodeFromName(item.name || item.product?.product_name || "", item.barcode),
+            }))
+          );
+        }
+        if (draft.unmatchedBarcode) {
+          setUnmatchedBarcode(draft.unmatchedBarcode);
         }
         // Also check for legacy detectedProducts from scanner page
         if (draft.detectedProducts && Array.isArray(draft.detectedProducts)) {
@@ -125,6 +140,14 @@ const SimpleSignOut = () => {
 
   const handleBarcodeDetected = async (barcode: string) => {
     console.log("Barcode detected:", barcode);
+
+    const activeId = (document.activeElement as HTMLElement | null)?.id;
+    if (activeId === "firstName") {
+      setFirstName((prev) => prev.replace(/\d+$/g, ""));
+    }
+    if (activeId === "lastName") {
+      setLastName((prev) => prev.replace(/\d+$/g, ""));
+    }
     
     try {
       const productData = await fetchFoodProduct(barcode);
@@ -132,32 +155,41 @@ const SimpleSignOut = () => {
         try {
           const { normalizeProductName } = ((window as any).require?.("@/lib/nameMap") ?? (() => { throw new Error("no require"); })());
           const normalizedName = normalizeProductName(productData.product.product_name, productData.product.brands);
+          const displayName = stripBarcodeFromName(normalizedName, barcode);
           
           const newItem = {
             id: `scan-${Date.now()}-${Math.random()}`,
             product: productData.product,
             barcode: barcode,
-            name: normalizedName
+            name: displayName
           };
           
           setScannedItems(prev => [...prev, newItem]);
-          toast.success(`Scanned: ${normalizedName}`);
+          setUnmatchedBarcode(null);
+          toast.success(`Scanned: ${displayName}`);
         } catch {
+          const displayName = stripBarcodeFromName(productData.product.product_name, barcode);
           const newItem = {
             id: `scan-${Date.now()}-${Math.random()}`,
             product: productData.product,
             barcode: barcode,
-            name: productData.product.product_name
+            name: displayName
           };
           setScannedItems(prev => [...prev, newItem]);
-          toast.success(`Scanned: ${productData.product.product_name}`);
+          setUnmatchedBarcode(null);
+          toast.success(`Scanned: ${displayName}`);
         }
       } else {
-        toast.error("Product not found. Please enter manually.");
+        setUnmatchedBarcode(barcode);
+        toast("Barcode not recognized yet", {
+          description: "Add a quick snack name below and we will still log it.",
+        });
       }
     } catch (error) {
       console.error("Error fetching product:", error);
-      toast.error("Failed to fetch product information.");
+      toast("Could not reach the product catalog", {
+        description: "Add a quick snack name below and we will still log it.",
+      });
     }
   };
 
@@ -180,6 +212,7 @@ const SimpleSignOut = () => {
     };
     setScannedItems(prev => [...prev, newItem]);
     setManualFoodItem("");
+    setUnmatchedBarcode(null);
     toast.success('Added manual item');
   };
 
@@ -424,6 +457,11 @@ const SimpleSignOut = () => {
                         <Scan className="h-4 w-4" />
                       </Button>
                     </div>
+                    {unmatchedBarcode && (
+                      <p className="text-xs text-muted-foreground">
+                        We could not match that barcode yet. Add a quick snack name and tap Add.
+                      </p>
+                    )}
                   </div>
 
                   {/* Scanned Items Display */}

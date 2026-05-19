@@ -16,6 +16,13 @@ const SimpleScan = () => {
   const [isLoadingProduct, setIsLoadingProduct] = useState(false);
   const [lastScan, setLastScan] = useState<string>("");
   const [scanCount, setScanCount] = useState(0);
+  const [unmatchedBarcode, setUnmatchedBarcode] = useState<string | null>(null);
+
+  const stripBarcodeFromName = (name: string, barcode?: string | null) => {
+    if (!barcode) return name;
+    const escaped = barcode.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return name.replace(new RegExp(escaped, "g"), "").replace(/\s{2,}/g, " ").trim();
+  };
 
   const handlePhysicalBarcodeDetected = async (barcode: string) => {
     console.log("Physical scanner detected barcode:", barcode);
@@ -27,19 +34,27 @@ const SimpleScan = () => {
       const productData = await fetchFoodProduct(barcode);
       if (productData && productData.product) {
         setScannedProduct(productData.product);
-        toast.success(`Scanned: ${productData.product.product_name}`);
+        const displayName = stripBarcodeFromName(productData.product.product_name, barcode);
+        toast.success(`Scanned: ${displayName}`);
         try {
           const { normalizeProductName } = ((window as any).require?.("@/lib/nameMap") ?? (() => { throw new Error("no require"); })());
           // replace displayed name in product for the scanner preview
-          productData.product.product_name = normalizeProductName(productData.product.product_name, productData.product.brands);
+          const normalized = normalizeProductName(productData.product.product_name, productData.product.brands);
+          productData.product.product_name = stripBarcodeFromName(normalized, barcode);
         } catch {}
+        setUnmatchedBarcode(null);
       } else {
-        toast.error("Product not found. Please try another barcode.");
+        setUnmatchedBarcode(barcode);
+        toast("Barcode not recognized yet", {
+          description: "You can still log it by entering a quick snack name.",
+        });
         setScannedProduct(null);
       }
     } catch (error) {
       console.error("Error fetching product:", error);
-      toast.error("Failed to fetch product information.");
+      toast("Could not reach the product catalog", {
+        description: "You can still log it by entering a quick snack name.",
+      });
       setScannedProduct(null);
     } finally {
       setIsLoadingProduct(false);
@@ -195,6 +210,44 @@ const SimpleScan = () => {
                     Log Snack
                   </Button>
                 </div>
+          </motion.div>
+        )}
+
+        {!isLoadingProduct && !scannedProduct && unmatchedBarcode && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-2xl mx-auto mt-4"
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>We could not match that barcode</CardTitle>
+                <CardDescription>
+                  You can still log the snack by entering a quick name on the next screen.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  onClick={() => {
+                    try {
+                      const raw = sessionStorage.getItem(DRAFT_KEY);
+                      const draft = raw ? JSON.parse(raw) : {};
+                      draft.unmatchedBarcode = unmatchedBarcode;
+                      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+                    } catch {}
+                    navigate("/simple");
+                  }}
+                >
+                  Enter Manually
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setUnmatchedBarcode(null)}
+                >
+                  Dismiss
+                </Button>
+              </CardContent>
+            </Card>
           </motion.div>
         )}
 
