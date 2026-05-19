@@ -26,7 +26,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { loadLogs as loadLogsFromBackend, toggleCrossedOut, deleteLog, clearAllLogs, SimpleLog } from "@/services/simpleLogService";
-import { addDaysToDateKey, filterLogsByDate, formatLogPageDate, getTodayDateKey } from "@/lib/logDayPages";
+import { Calendar } from "@/components/ui/calendar";
+import { addDaysToDateKey, filterLogsByDate, formatLogPageDate, getTodayDateKey, toLocalDateKey } from "@/lib/logDayPages";
 
 type LogEntry = SimpleLog;
 
@@ -55,6 +56,7 @@ const SimpleAdmin = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedDateKey, setSelectedDateKey] = useState(getTodayDateKey());
+  const [showAllLogs, setShowAllLogs] = useState(false);
   const [chartData, setChartData] = useState<Array<{ date: string; count: number }>>([]);
   const [dailyRemaining, setDailyRemaining] = useState<Array<{ date: string; remaining: number }>>([]);
   // (no permanent deletes — we toggle a crossedOut flag instead)
@@ -156,8 +158,20 @@ const SimpleAdmin = () => {
   }, [debouncedSearch, logs]);
 
   const displayedLogs = useMemo(() => {
+    if (showAllLogs) return filteredLogs;
     return filterLogsByDate(filteredLogs, selectedDateKey);
-  }, [filteredLogs, selectedDateKey]);
+  }, [filteredLogs, selectedDateKey, showAllLogs]);
+
+  const selectedDate = useMemo(() => {
+    const [year, month, day] = selectedDateKey.split("-").map(Number);
+    return new Date(year, month - 1, day);
+  }, [selectedDateKey]);
+
+  const handleSelectDate = (date?: Date) => {
+    if (!date) return;
+    setSelectedDateKey(toLocalDateKey(date));
+    setShowAllLogs(false);
+  };
 
   const handleToggleCrossOut = async (id: string) => {
     // Optimistic update
@@ -337,15 +351,27 @@ const SimpleAdmin = () => {
                 <CardHeader>
                   <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div className="flex-1">
-                      <CardTitle className="text-lg md:text-xl">All Snack Logs</CardTitle>
+                      <CardTitle className="text-lg md:text-xl">Daily Snack Logs</CardTitle>
                       <CardDescription className="text-sm">
-                        <span className="font-semibold text-foreground">{formatLogPageDate(selectedDateKey)}</span>
-                        <span className="text-muted-foreground"> • {displayedLogs.length} log(s)</span>
+                        {showAllLogs ? (
+                          <>
+                            <span className="font-semibold text-foreground">All time</span>
+                            <span className="text-muted-foreground"> • {displayedLogs.length} log(s)</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="font-semibold text-foreground">{formatLogPageDate(selectedDateKey)}</span>
+                            <span className="text-muted-foreground"> • {displayedLogs.length} log(s)</span>
+                          </>
+                        )}
                       </CardDescription>
                     </div>
                     <div className="flex gap-2">
                       <Button
-                        onClick={() => setSelectedDateKey(addDaysToDateKey(selectedDateKey, -1))}
+                        onClick={() => {
+                          setSelectedDateKey(addDaysToDateKey(selectedDateKey, -1));
+                          setShowAllLogs(false);
+                        }}
                         variant="outline"
                         size="sm"
                         title="View previous day"
@@ -353,7 +379,10 @@ const SimpleAdmin = () => {
                         <ArrowLeft className="h-4 w-4" />
                       </Button>
                       <Button
-                        onClick={() => setSelectedDateKey(getTodayDateKey())}
+                        onClick={() => {
+                          setSelectedDateKey(getTodayDateKey());
+                          setShowAllLogs(false);
+                        }}
                         variant="outline"
                         size="sm"
                         title="Jump to today"
@@ -361,7 +390,10 @@ const SimpleAdmin = () => {
                         Today
                       </Button>
                       <Button
-                        onClick={() => setSelectedDateKey(addDaysToDateKey(selectedDateKey, 1))}
+                        onClick={() => {
+                          setSelectedDateKey(addDaysToDateKey(selectedDateKey, 1));
+                          setShowAllLogs(false);
+                        }}
                         variant="outline"
                         size="sm"
                         title="View next day"
@@ -382,7 +414,9 @@ const SimpleAdmin = () => {
                 </CardHeader>
                 <CardContent>
                   {displayedLogs.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">No snack logs for this day yet.</p>
+                    <p className="text-center text-muted-foreground py-8">
+                      {showAllLogs ? "No snack logs yet." : "No snack logs for this day yet."}
+                    </p>
                   ) : (
                     <div className="overflow-x-auto">
                       <Table>
@@ -439,13 +473,36 @@ const SimpleAdmin = () => {
                   ) : (
                     <div className="space-y-2">
                       {dailyRemaining.map((d) => (
-                        <div key={d.date} className="flex items-center justify-between">
+                        <button
+                          key={d.date}
+                          type="button"
+                          className="flex w-full items-center justify-between rounded-md px-2 py-1 text-left transition-colors hover:bg-muted"
+                          onClick={() => {
+                            const dateKey = toLocalDateKey(new Date(d.date));
+                            setSelectedDateKey(dateKey);
+                            setShowAllLogs(false);
+                          }}
+                        >
                           <div className="text-sm">{d.date}</div>
                           <div className="text-sm font-bold">{d.remaining}</div>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   )}
+                </CardContent>
+              </Card>
+              <Card className="mt-4">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Jump to Date</CardTitle>
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent className="p-0">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={handleSelectDate}
+                    className="w-full"
+                  />
                 </CardContent>
               </Card>
             </div>
@@ -453,7 +510,12 @@ const SimpleAdmin = () => {
         </motion.div>
 
         <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          <Card>
+          <Card
+            className="cursor-pointer transition-colors hover:bg-muted/40"
+            onClick={() => setShowAllLogs(true)}
+            role="button"
+            aria-label="Show all snack logs"
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Logs</CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
