@@ -13,7 +13,7 @@ import {
 import { UserCircle2, Trash2, ArrowLeft, ArrowRight, Calendar as CalendarIcon, Download, RefreshCw, Search, Package, Users, TrendingUp, Strikethrough } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { buildCsv, downloadCsv, formatExportDateTime } from "@/lib/csvExport";
+import { buildCsv, downloadCsv, formatExportDateTime, formatLogsExportDate } from "@/lib/csvExport";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -252,8 +252,11 @@ const SimpleAdmin = () => {
       "",
       formatExportDateTime(log.timestamp),
     ]);
+    const [year, month, day] = selectedDateKey.split("-").map(Number);
+    const exportDate = new Date(year, month - 1, day);
+    const filename = `${formatLogsExportDate(exportDate)} Logs.csv`;
 
-    downloadCsv(buildCsv(headers, rows));
+    downloadCsv(buildCsv(headers, rows), filename);
     toast.success('Logs exported successfully');
   };
 
