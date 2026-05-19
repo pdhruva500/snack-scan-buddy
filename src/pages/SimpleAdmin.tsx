@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { UserCircle2, Trash2, ArrowLeft, Download, RefreshCw, Search, Package, Users, TrendingUp, Strikethrough } from "lucide-react";
+import { UserCircle2, Trash2, ArrowLeft, ArrowRight, Download, RefreshCw, Search, Package, Users, TrendingUp, Strikethrough } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { buildCsv, downloadCsv, formatExportDateTime } from "@/lib/csvExport";
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { loadLogs as loadLogsFromBackend, toggleCrossedOut, deleteLog, clearAllLogs, SimpleLog } from "@/services/simpleLogService";
+import { addDaysToDateKey, filterLogsByDate, formatLogPageDate, getTodayDateKey } from "@/lib/logDayPages";
 
 type LogEntry = SimpleLog;
 
@@ -53,6 +54,7 @@ const SimpleAdmin = () => {
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedDateKey, setSelectedDateKey] = useState(getTodayDateKey());
   const [chartData, setChartData] = useState<Array<{ date: string; count: number }>>([]);
   const [dailyRemaining, setDailyRemaining] = useState<Array<{ date: string; remaining: number }>>([]);
   // (no permanent deletes — we toggle a crossedOut flag instead)
@@ -152,6 +154,10 @@ const SimpleAdmin = () => {
       )
     );
   }, [debouncedSearch, logs]);
+
+  const displayedLogs = useMemo(() => {
+    return filterLogsByDate(filteredLogs, selectedDateKey);
+  }, [filteredLogs, selectedDateKey]);
 
   const handleToggleCrossOut = async (id: string) => {
     // Optimistic update
@@ -330,9 +336,38 @@ const SimpleAdmin = () => {
               <Card>
                 <CardHeader>
                   <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <div>
+                    <div className="flex-1">
                       <CardTitle className="text-lg md:text-xl">All Snack Logs</CardTitle>
-                      <CardDescription className="text-sm">Total logs: {logs.length}</CardDescription>
+                      <CardDescription className="text-sm">
+                        <span className="font-semibold text-foreground">{formatLogPageDate(selectedDateKey)}</span>
+                        <span className="text-muted-foreground"> • {displayedLogs.length} log(s)</span>
+                      </CardDescription>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => setSelectedDateKey(addDaysToDateKey(selectedDateKey, -1))}
+                        variant="outline"
+                        size="sm"
+                        title="View previous day"
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        onClick={() => setSelectedDateKey(getTodayDateKey())}
+                        variant="outline"
+                        size="sm"
+                        title="Jump to today"
+                      >
+                        Today
+                      </Button>
+                      <Button
+                        onClick={() => setSelectedDateKey(addDaysToDateKey(selectedDateKey, 1))}
+                        variant="outline"
+                        size="sm"
+                        title="View next day"
+                      >
+                        <ArrowRight className="h-4 w-4" />
+                      </Button>
                     </div>
                     <div className="relative w-full md:w-64">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -346,8 +381,8 @@ const SimpleAdmin = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {logs.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">No snack logs yet.</p>
+                  {displayedLogs.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">No snack logs for this day yet.</p>
                   ) : (
                     <div className="overflow-x-auto">
                       <Table>
@@ -360,7 +395,7 @@ const SimpleAdmin = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {filteredLogs.map((log) => (
+                          {displayedLogs.map((log) => (
                             <TableRow key={log.id}>
                               <TableCell className={`font-medium ${log.crossedOut ? 'line-through text-muted-foreground opacity-70' : ''}`}>{log.firstName} {log.lastName}</TableCell>
                               <TableCell className={`${log.crossedOut ? 'line-through text-muted-foreground opacity-70' : ''}`}>{log.foodItem}{log.barcode && <span className="text-xs text-muted-foreground ml-2">(Scanned)</span>}</TableCell>
