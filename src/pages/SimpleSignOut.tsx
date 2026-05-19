@@ -25,6 +25,10 @@ const SimpleSignOut = () => {
   const [lunchRestrictionMessage, setLunchRestrictionMessage] = useState<string | null>(null);
   const [totalScans, setTotalScans] = useState<number>(0);
   const [unmatchedBarcode, setUnmatchedBarcode] = useState<string | null>(null);
+  const firstNameRef = useRef<HTMLInputElement | null>(null);
+  const lastNameRef = useRef<HTMLInputElement | null>(null);
+  const firstNameBlurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastNameBlurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const DRAFT_KEY = "simple_signout_draft";
   const draftRef = useRef<any>({});
@@ -33,6 +37,26 @@ const SimpleSignOut = () => {
     if (!barcode) return name;
     const escaped = barcode.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     return name.replace(new RegExp(escaped, "g"), "").replace(/\s{2,}/g, " ").trim();
+  };
+
+  const sanitizeNameInput = (value: string) => {
+    const trimmed = value.trim();
+    if (/^\d+$/.test(trimmed)) return "";
+    return value.replace(/\d{3,}/g, "").replace(/\s{2,}/g, " ");
+  };
+
+  const scheduleNameBlur = (
+    ref: React.RefObject<HTMLInputElement>,
+    timeoutRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>,
+    value: string,
+  ) => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      if (value.trim().length === 0) return;
+      if (ref.current && document.activeElement === ref.current) {
+        ref.current.blur();
+      }
+    }, 900);
   };
 
   // keep ref updated with latest values so cleanup can save current draft
@@ -51,10 +75,12 @@ const SimpleSignOut = () => {
         if (draft.manualFoodItem) setManualFoodItem(draft.manualFoodItem);
         if (draft.scannedItems && Array.isArray(draft.scannedItems)) {
           setScannedItems(
-            draft.scannedItems.map((item: any) => ({
-              ...item,
-              name: stripBarcodeFromName(item.name || item.product?.product_name || "", item.barcode),
-            }))
+            draft.scannedItems
+              .map((item: any) => ({
+                ...item,
+                name: stripBarcodeFromName(item.name || item.product?.product_name || "", item.barcode),
+              }))
+              .filter((item: any) => !/^\d+$/.test(String(item.name || "").trim()))
           );
         }
         if (draft.unmatchedBarcode) {
@@ -156,6 +182,13 @@ const SimpleSignOut = () => {
           const { normalizeProductName } = ((window as any).require?.("@/lib/nameMap") ?? (() => { throw new Error("no require"); })());
           const normalizedName = normalizeProductName(productData.product.product_name, productData.product.brands);
           const displayName = stripBarcodeFromName(normalizedName, barcode);
+          if (/^\d+$/.test(displayName)) {
+            setUnmatchedBarcode(barcode);
+            toast("Barcode not recognized yet", {
+              description: "Add a quick snack name below and we will still log it.",
+            });
+            return;
+          }
           
           const newItem = {
             id: `scan-${Date.now()}-${Math.random()}`,
@@ -169,6 +202,13 @@ const SimpleSignOut = () => {
           toast.success(`Scanned: ${displayName}`);
         } catch {
           const displayName = stripBarcodeFromName(productData.product.product_name, barcode);
+          if (/^\d+$/.test(displayName)) {
+            setUnmatchedBarcode(barcode);
+            toast("Barcode not recognized yet", {
+              description: "Add a quick snack name below and we will still log it.",
+            });
+            return;
+          }
           const newItem = {
             id: `scan-${Date.now()}-${Math.random()}`,
             product: productData.product,
@@ -409,8 +449,16 @@ const SimpleSignOut = () => {
                       <Label htmlFor="firstName">First Name</Label>
                       <Input
                         id="firstName"
+                        ref={firstNameRef}
                         value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
+                        onChange={(e) => {
+                          const next = sanitizeNameInput(e.target.value);
+                          setFirstName(next);
+                          if (firstNameBlurTimeout.current) {
+                            clearTimeout(firstNameBlurTimeout.current);
+                            firstNameBlurTimeout.current = null;
+                          }
+                        }}
                         required
                       />
                     </div>
@@ -418,9 +466,13 @@ const SimpleSignOut = () => {
                       <Label htmlFor="lastName">Last Name</Label>
                       <Input
                         id="lastName"
-                        
+                        ref={lastNameRef}
                         value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
+                        onChange={(e) => {
+                          const next = sanitizeNameInput(e.target.value);
+                          setLastName(next);
+                          scheduleNameBlur(lastNameRef, lastNameBlurTimeout, next);
+                        }}
                         required
                       />
                     </div>
